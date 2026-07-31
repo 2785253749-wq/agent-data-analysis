@@ -23,6 +23,11 @@ spring:
           model: deepseek-chat
           temperature: 0.0
 
+  security:
+    user:
+      name: admin
+      password: test123
+
 app:
   version: 0.1.0
   name: AI-Agent数据分析平台
