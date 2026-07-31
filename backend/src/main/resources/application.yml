@@ -35,14 +35,20 @@ spring:
       hibernate:
         format_sql: true
 
-  # ---- DeepSeek via OpenAI-compatible client (API key in application-local.yml) ----
+  # ---- Dev security (override in production) ----
+  security:
+    user:
+      name: admin
+      password: test123
+
+  # ---- DeepSeek config (override in application-local.yml) ----
   ai:
     openai:
-      api-key: ${DEEPSEEK_API_KEY:}
-      base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com/v1}
+      api-key: ""
+      base-url: "https://api.deepseek.com/v1"
       chat:
         options:
-          model: ${DEEPSEEK_MODEL:deepseek-v4-pro}
+          model: deepseek-v4-pro
           temperature: 0.0
 
 # ---- Actuator ----

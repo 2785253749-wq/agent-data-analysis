@@ -53,11 +53,7 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- Spring AI - OpenAI (DeepSeek compatible via base-url override) -->
-        <dependency>
-            <groupId>org.springframework.ai</groupId>
-            <artifactId>spring-ai-openai-spring-boot-starter</artifactId>
-        </dependency>
+        <!-- DeepSeek HTTP client is implemented natively (DeepSeekClient.java) -->
 
         <!-- Flyway DB Migration — to be added when DB migration automation is needed -->
         <!--
@@ -78,11 +74,11 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- H2 for test -->
+        <!-- H2 — used for local dev and tests -->
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>test</scope>
+            <scope>compile</scope>
         </dependency>
 
         <!-- Lombok -->

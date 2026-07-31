@@ -13,12 +13,6 @@ import java.sql.Connection;
  * Public health-check endpoint.
  *
  * GET /api/health → 200 { status: "UP", ... }
- *
- * Contract:
- * - Always returns 200 when the application is running.
- * - Database status reflects connectivity to the primary datasource.
- * - DeepSeek status reflects API key configuration (not an actual API call at this stage).
- * - Version matches pom.xml / app.version property.
  */
 @RestController
 public class HealthController {
@@ -26,26 +20,24 @@ public class HealthController {
     private final String applicationName;
     private final String version;
     private final DataSource dataSource;
+    private final String deepseekApiKey;
 
     public HealthController(
             @Value("${app.name}") String applicationName,
             @Value("${app.version}") String version,
-            DataSource dataSource) {
+            DataSource dataSource,
+            @Value("${spring.ai.openai.api-key:}") String deepseekApiKey) {
         this.applicationName = applicationName;
         this.version = version;
         this.dataSource = dataSource;
+        this.deepseekApiKey = deepseekApiKey;
     }
 
     @GetMapping("/api/health")
     public ResponseEntity<HealthResponse> health() {
         HealthResponse response = HealthResponse.up(applicationName, version);
-
-        // Check database connectivity
         response = response.withDatabase(checkDatabase());
-
-        // Check DeepSeek configuration (no network call at this stage)
         response = response.withDeepseek(checkDeepseek());
-
         return ResponseEntity.ok(response);
     }
 
@@ -61,10 +53,7 @@ public class HealthController {
     }
 
     private HealthResponse.ComponentHealth checkDeepseek() {
-        // At T01 stage, only verify that an API key is configured.
-        // Actual connectivity will be verified in a later task (e.g., M1).
-        String apiKey = System.getenv("DEEPSEEK_API_KEY");
-        if (apiKey != null && !apiKey.isBlank() && !apiKey.startsWith("sk-your-")) {
+        if (deepseekApiKey != null && !deepseekApiKey.isBlank() && !deepseekApiKey.startsWith("sk-your-")) {
             return new HealthResponse.ComponentHealth("UP", "API key configured");
         }
         return new HealthResponse.ComponentHealth("UNKNOWN", "API key not configured or using placeholder");
