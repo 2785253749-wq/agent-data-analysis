@@ -61,7 +61,7 @@ agent数据分析/
 | **M2** | Text-to-SQL | ✅ 完成 | SqlResultDTO + SqlGenerationService + Prompt 文件 |
 | **M3** | SQL 安全校验 | ✅ 完成 | SqlSafetyService：7 层防线 + 31 个安全测试 |
 | **M4** | 只读查询执行 | ✅ 完成 | QueryExecutionService + 参数绑定 + 超时控制 + 审计 |
-| **M5** | 数据解释 | ⬜ 待开始 | 自然语言结论生成 |
+| **M5** | 数据解释 | ✅ 完成 | InterpretationDTO + ResultInterpretationService |
 | **M6** | 图表推荐 | ⬜ 待开始 | ECharts 渲染 |
 | **M7** | 分析编排器 | ⬜ 待开始 | SSE 进度推送 |
 | **M8** | 前端对话界面 | ⬜ 待开始 | 对话式分析 UI |
@@ -354,29 +354,50 @@ summary: string         ← 可读摘要
 
 ---
 
-## 十二、待开始：M5 数据解释
+## 十二、M5 完成记录
 
-### 依赖 M4 的产出
-- QueryResult（查询结果：columns, rows, rowCount, executionTimeMs）
-- 已验证可安全执行的 SQL 查询
+**日期**：2026-08-01
 
-### M5 需要做的事
-1. 设计 InterpretationDTO（conclusion, evidence, type: fact/inference/suggestion）
-2. 编写 数据解释 Prompt（只基于提供的数据下结论，每句有 evidence）
-3. 创建 ResultInterpretationService
-4. 创建测试（不编造数据、数据不足时明确说明、区分事实/推断/建议）
-5. 创建 Prompt 文件
+### 完成内容
 
-### 关键约束（从规范第 6.3 节）
-- 只基于提供的数据摘要下结论
-- 每句结论附 evidence
-- 区分事实、推断、建议
-- 数据不足时明确说明
-- 禁止引用未查询的数据
+| 文件 | 说明 |
+|------|------|
+| `dto/InterpretationDTO.java` | 解释结果（conclusion, points[{statement, type, evidence, confidence}], dataSufficient, confidence, caveats） |
+| `service/ResultInterpretationService.java` | 注入问题+QueryResult → DeepSeek → InterpretationDTO |
+| `prompts/interpretation/system.txt` | System prompt（fact/inference/suggestion 三类，每句有 evidence） |
+| `prompts/interpretation/v1.json` | 版本元数据（温度 0.2） |
+
+### InterpretationDTO 结构
+```
+conclusion: string          ← 一句话总结
+points: [{statement, type(fact|inference|suggestion), evidence, confidence(0-1)}]
+dataSufficient: boolean     ← 数据是否足够得出结论
+confidence: high|medium|low
+caveats: [string]           ← 局限性和注意事项
+```
+
+### 测试结果
+- ResultInterpretationServiceTest：7/7 通过
+- 全部测试：**94/94 通过**
 
 ---
 
-## 十三、安全备忘
+## 十三、待开始：M6 图表推荐
+
+### 依赖 M5 的产出
+- QueryResult（数据）
+- InterpretationDTO（解释）
+- IntentDTO（意图类型）
+
+### M6 需要做的事
+1. 设计 ChartSpecDTO（type: bar|line|pie|table|scatter, labels, datasets, options）
+2. 创建 ChartRecommendationService（基于意图类型+数据结构推荐图表）
+3. 前端 ECharts 渲染组件
+4. 测试
+
+---
+
+## 十四、安全备忘
 
 - [x] DeepSeek API Key 通过 `application-local.yml`（gitignored）注入
 - [x] 数据库双账号设计（`app_user` + `app_readonly`）
@@ -390,6 +411,6 @@ summary: string         ← 可读摘要
 
 ---
 
-## 十四、最后更新
+## 十五、最后更新
 
-**2026-07-31**：完成 T01 + T02 + M1 + M2 + M3 + M4。测试 87/87 全部通过。下一步 M5 数据解释。
+**2026-08-01**：完成 T01 + T02 + M1 + M2 + M3 + M4 + M5。测试 94/94 全部通过。下一步 M6 图表推荐。
