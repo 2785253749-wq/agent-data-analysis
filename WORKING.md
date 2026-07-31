@@ -62,7 +62,7 @@ agent数据分析/
 | **M3** | SQL 安全校验 | ✅ 完成 | SqlSafetyService：7 层防线 + 31 个安全测试 |
 | **M4** | 只读查询执行 | ✅ 完成 | QueryExecutionService + 参数绑定 + 超时控制 + 审计 |
 | **M5** | 数据解释 | ✅ 完成 | InterpretationDTO + ResultInterpretationService |
-| **M6** | 图表推荐 | ⬜ 待开始 | ECharts 渲染 |
+| **M6** | 图表推荐 | ✅ 完成 | ChartRecommendationService + ChartRenderer(ECharts) |
 | **M7** | 分析编排器 | ⬜ 待开始 | SSE 进度推送 |
 | **M8** | 前端对话界面 | ⬜ 待开始 | 对话式分析 UI |
 
@@ -382,22 +382,48 @@ caveats: [string]           ← 局限性和注意事项
 
 ---
 
-## 十三、待开始：M6 图表推荐
+## 十三、M6 完成记录
 
-### 依赖 M5 的产出
-- QueryResult（数据）
-- InterpretationDTO（解释）
-- IntentDTO（意图类型）
+**日期**：2026-08-01
 
-### M6 需要做的事
-1. 设计 ChartSpecDTO（type: bar|line|pie|table|scatter, labels, datasets, options）
-2. 创建 ChartRecommendationService（基于意图类型+数据结构推荐图表）
-3. 前端 ECharts 渲染组件
-4. 测试
+### 完成内容
+
+| 文件 | 说明 |
+|------|------|
+| `dto/ChartSpecDTO.java` | ECharts 图表规格（type, title, labels, datasets[{label, data, color}], options） |
+| `service/ChartRecommendationService.java` | 规则引擎：根据意图类型+数据结构自动推荐图表类型 |
+| `frontend/src/components/ChartRenderer.vue` | ECharts 渲染组件（bar/line/pie/scatter/horizontal_bar/table） |
+| `ChartRecommendationServiceTest.java` | 12 个测试 |
+
+### 图表推荐规则
+| 意图类型 | 条件 | 推荐图表 |
+|----------|------|----------|
+| aggregation + 时间维度 | time字段或timeRange | line |
+| aggregation + 1维度 + 1指标 | ≤10行 | pie |
+| aggregation | 其他情况 | bar |
+| ranking | — | horizontal_bar |
+| comparison | — | bar |
+| detail / query | — | table |
+| correlation | ≥2数值列 | scatter |
+
+### 测试结果
+- ChartRecommendationServiceTest：12/12 通过
+- 全部测试：**106/106 通过**
 
 ---
 
-## 十四、安全备忘
+## 十四、待开始：M7 分析编排器
+
+### M7 需要做的事
+1. 创建 AnalysisOrchestrator（串联 M1→M2→M3→M4→M5→M6 全流程）
+2. SSE 进度推送（stepStarted/stepCompleted/stepFailed/taskCompleted）
+3. 创建 analysis_tasks + analysis_steps 持久化
+4. POST /analysis/tasks + GET /analysis/tasks/{id}（SSE）
+5. 测试
+
+---
+
+## 十五、安全备忘
 
 - [x] DeepSeek API Key 通过 `application-local.yml`（gitignored）注入
 - [x] 数据库双账号设计（`app_user` + `app_readonly`）
@@ -411,6 +437,6 @@ caveats: [string]           ← 局限性和注意事项
 
 ---
 
-## 十五、最后更新
+## 十六、最后更新
 
-**2026-08-01**：完成 T01 + T02 + M1 + M2 + M3 + M4 + M5。测试 94/94 全部通过。下一步 M6 图表推荐。
+**2026-08-01**：完成 T01 + T02 + M1 + M2 + M3 + M4 + M5 + M6。测试 106/106 全部通过。下一步 M7 分析编排器。
