@@ -2,6 +2,36 @@ import apiClient from './client'
 
 // ---- Types ----
 
+export interface ChartSpecDTO {
+  type: string
+  title: string | null
+  labels: string[]
+  datasets: { label: string; data: number[]; color: string | null }[]
+  options?: Record<string, unknown>
+}
+
+export interface AnalysisResponse {
+  taskId: number
+  question: string
+  status: string
+  intent?: { intentType: string; needsClarification: boolean; clarificationQuestions: string[] }
+  sqlResult?: { sql: string; explanation: string; usedTables: string[]; usedFields: string[]; parameters?: Record<string, string> }
+  validationResult?: { passed: boolean; reason: string; violations: string[] }
+  queryResult?: { columns: string[]; rows: Record<string, unknown>[]; rowCount: number; executionTimeMs: number; truncated: boolean; summary: string }
+  interpretation?: {
+    conclusion: string
+    points: { statement: string; type: string; evidence: string; confidence: number }[]
+    dataSufficient: boolean
+    confidence: string
+    caveats: string[]
+  }
+  chartSpec?: { type: string; title: string; labels: string[]; datasets: { label: string; data: number[]; color: string | null }[] }
+  errorMessage?: string
+  steps: { stepType: string; status: string; durationMs: number }[]
+  createdAt: string
+  completedAt: string | null
+}
+
 export interface DatasetResponse {
   id: number
   name: string

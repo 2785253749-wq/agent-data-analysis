@@ -54,18 +54,6 @@ const props = defineProps<{
   spec: ChartSpecDTO
 }>()
 
-interface ChartSpecDTO {
-  type: string
-  title: string | null
-  labels: string[]
-  datasets: {
-    label: string
-    data: number[]
-    color: string | null
-  }[]
-  options?: Record<string, any>
-}
-
 const chartOption = computed(() => {
   const { type, labels, datasets } = props.spec
 

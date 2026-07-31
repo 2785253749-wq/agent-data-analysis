@@ -2,6 +2,10 @@
   <div id="app-container">
     <header class="app-header">
       <h1>AI-Agent 数据分析平台</h1>
+      <nav class="nav-links">
+        <router-link to="/">对话</router-link>
+        <router-link to="/admin/datasets">管理</router-link>
+      </nav>
       <span class="version">v0.1.0</span>
     </header>
     <main class="app-main">
@@ -39,6 +43,25 @@ body {
 .app-header h1 {
   font-size: 18px;
   font-weight: 600;
+}
+
+.nav-links {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-links a {
+  color: #a0a0b0;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-links a:hover,
+.nav-links a.router-link-active {
+  color: #fff;
+  border-bottom-color: #5470c6;
 }
 
 .app-header .version {

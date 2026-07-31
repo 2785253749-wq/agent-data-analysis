@@ -6,7 +6,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: () => import('@/views/LoginView.vue'), // placeholder — will become Dashboard
+      component: () => import('@/views/ChatView.vue'),
     },
     {
       path: '/login',
@@ -17,10 +17,7 @@ const router = createRouter({
       path: '/admin',
       component: () => import('@/views/admin/AdminLayout.vue'),
       children: [
-        {
-          path: '',
-          redirect: '/admin/datasets',
-        },
+        { path: '', redirect: '/admin/datasets' },
         {
           path: 'datasets',
           name: 'adminDatasets',
