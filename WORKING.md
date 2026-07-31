@@ -64,7 +64,7 @@ agent数据分析/
 | **M5** | 数据解释 | ✅ 完成 | InterpretationDTO + ResultInterpretationService |
 | **M6** | 图表推荐 | ✅ 完成 | ChartRecommendationService + ChartRenderer(ECharts) |
 | **M7** | 分析编排器 | ✅ 完成 | AnalysisOrchestrator + SSE + 任务持久化 |
-| **M8** | 前端对话界面 | ⬜ 待开始 | 对话式分析 UI |
+| **M8** | 前端对话界面 | ✅ 完成 | ChatView + AnalysisResult + ChartRenderer |
 
 ---
 
@@ -457,18 +457,62 @@ AnalysisResponse（含全部6步结果 + 步骤耗时）
 
 ---
 
-## 十五、待开始：M8 前端对话界面
+## 十五、M8 完成记录
 
-### M8 需要做的事
-1. 对话输入组件（ChatInput.vue）
-2. 进度展示组件（SSE stepStarted/stepCompleted）
-3. 结果面板（表格+图表+解释三栏布局）
-4. 更新路由（/chat）
-5. 测试
+**日期**：2026-08-01
+
+### 完成内容
+
+| 文件 | 说明 |
+|------|------|
+| `views/ChatView.vue` | 对话输入（问题+数据集选择）+ Ctrl+Enter 提交 |
+| `components/AnalysisResult.vue` | 步骤时间线 + 意图澄清 + 图表 + 解释 + SQL 展示 |
+| `components/ChartRenderer.vue` | ECharts 6种图表渲染 |
+| `composables/useAnalysis.ts` | 分析状态管理（loading/result/error/reset） |
+| `router/index.ts` | `/` → ChatView（首页） |
+| `App.vue` | 顶部导航（对话/管理） |
+
+### 测试结果
+- 后端：111/111 BUILD SUCCESS
+- 前端：vitest 4/4 + TypeScript 0 错误
 
 ---
 
-## 十六、安全备忘
+## 十六、MVP 完成总结
+
+```
+T01 ████████████ ✅ 项目骨架         4 tests
+T02 ████████████ ✅ 元数据管理      22 tests
+M1  ████████████ ✅ 意图识别         9 tests
+M2  ████████████ ✅ SQL生成         10 tests
+M3  ████████████ ✅ SQL安全         31 tests
+M4  ████████████ ✅ 查询执行        11 tests
+M5  ████████████ ✅ 数据解释         7 tests
+M6  ████████████ ✅ 图表推荐        12 tests
+M7  ████████████ ✅ 分析编排器       5 tests
+M8  ████████████ ✅ 对话界面         4 tests
+─────────────────────────────────────
+              TOTAL: 115 tests passed
+              9 commits to GitHub
+              ~100 source files
+```
+
+### 全流程
+```
+用户提问 → [M1 意图识别] → [M2 SQL生成] → [M3 安全校验]
+→ [M4 只读执行] → [M5 数据解释] → [M6 图表推荐]
+→ [M7 编排器] → [M8 对话界面展示]
+```
+
+### 安全防线
+1. Prompt 层面：只允许 SELECT，禁止 DDL/DML，使用命名参数
+2. SQL 层面：7 层词法校验（注释剥离、语句类型、禁止关键字、危险函数、字段白名单、LIMIT 强制、注入防护）
+3. 执行层面：只读 JdbcTemplate（maxRows=1000, timeout=30s）
+4. 数据层面：app_readonly 数据库账号、审计日志表
+
+---
+
+## 十七、安全备忘
 
 - [x] DeepSeek API Key 通过 `application-local.yml`（gitignored）注入
 - [x] 数据库双账号设计（`app_user` + `app_readonly`）
@@ -482,6 +526,6 @@ AnalysisResponse（含全部6步结果 + 步骤耗时）
 
 ---
 
-## 十七、最后更新
+## 十八、最后更新
 
-**2026-08-01**：完成 T01 + T02 + M1-M7。测试 111/111 全部通过。下一步 M8 前端对话界面。
+**2026-08-01**：🎉 MVP 全部完成！T01+T02+M1-M8 共 10 个任务，115 个测试全部通过，9 个 commit 已推送 GitHub。
