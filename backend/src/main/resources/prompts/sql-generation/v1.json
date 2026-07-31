@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "model": "deepseek-chat",
+  "temperature": 0.0,
+  "maxTokens": 2048,
+  "description": "V1 SQL生成 Prompt 配置 — 根据意图+元数据生成MySQL查询（仅SELECT）",
+  "systemPromptFile": "prompts/sql-generation/system.txt",
+  "hardConstraints": [
+    "只生成 SELECT 或 WITH...SELECT",
+    "禁止 DDL/DML/注释/危险函数",
+    "只能使用提供的字段名和表名",
+    "详细查询默认 LIMIT 200",
+    "使用命名参数格式 ${param}"
+  ]
+}

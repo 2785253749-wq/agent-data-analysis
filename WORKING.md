@@ -58,7 +58,7 @@ agent数据分析/
 | **T01** | 项目初始化 + 前后端骨架 | ✅ 完成 | 健康检查、DeepSeek 客户端、数据库表结构 |
 | **T02** | 数据集元数据管理 | ✅ 完成 | CRUD 管理后台、15 个 REST 端点、22 个测试 |
 | **M1** | 意图识别 | ✅ 完成 | IntentDTO + IntentRecognitionService + Prompt 文件 |
-| **M2** | Text-to-SQL | ⬜ 待开始 | SQL 生成 Prompt + 结构化输出 |
+| **M2** | Text-to-SQL | ✅ 完成 | SqlResultDTO + SqlGenerationService + Prompt 文件 |
 | **M3** | SQL 安全校验 | ⬜ 待开始 | AST 校验 + 字段白名单 + 权限 |
 | **M4** | 只读查询执行 | ⬜ 待开始 | 参数绑定 + 超时控制 + 审计 |
 | **M5** | 数据解释 | ⬜ 待开始 | 自然语言结论生成 |
@@ -236,28 +236,46 @@ clarificationQuestions: [string]
 
 ---
 
-## 九、待开始：M2 Text-to-SQL
+## 九、M2 完成记录
 
-### 依赖 M1 的产出
-- IntentDTO（意图结构化输出）
-- `/api/datasets/{id}/context`（元数据上下文）
+**日期**：2026-07-31
 
-### M2 需要做的事
-1. 设计 SqlResultDTO（sql, parameters, usedTables, usedFields, explanation）
-2. 编写 SQL 生成 Prompt（强制 SELECT/WITH SELECT，禁止 DDL/DML，必须使用元数据中的字段）
-3. 创建 SqlGenerationService（注入 IntentDTO + 数据集元数据 → 调用 DeepSeek → 返回 SQL）
-4. 创建 SqlGenerationServiceTest（只用 SELECT、字段来自元数据、含 LIMIT、不含 DDL/DML）
-5. 创建 Prompt 文件 `prompts/sql-generation/system.txt` 和 `v1.json`
+### 完成内容
 
-### 关键约束（从规范第 6.2 节）
-- 只生成一个 SELECT/WITH SELECT
-- 禁止 DDL/DML、注释、未授权字段
-- 详细查询强制 LIMIT
-- 温度 0（SQL 生成需要确定性）
+| 文件 | 说明 |
+|------|------|
+| `dto/SqlResultDTO.java` | SQL 生成结果（sql, parameters, usedTables, usedFields, explanation） |
+| `dto/SqlGenerationRequest.java` | SQL 生成请求（question + intent + datasetId） |
+| `service/SqlGenerationService.java` | 注入 IntentDTO + 元数据 → DeepSeek → SqlResultDTO |
+| `prompts/sql-generation/system.txt` | System prompt（硬约束：只有SELECT、禁止DDL/DML、使用命名参数） |
+| `prompts/sql-generation/v1.json` | 版本元数据（温度 0.0，maxTokens 2048） |
 
-### 关键风险
-- DeepSeek 幻觉字段名 → 必须在 SQL 中使用的每个字段与元数据白名单比对
-- 生成的 SQL 语法错误 → 需要后续 M3 的 AST 校验
+### 测试结果
+- SqlGenerationServiceTest：10/10 通过
+- 全部测试：**45/45 通过**
+
+### SqlResultDTO 结构
+```
+sql: string           ← 生成的 SQL（SELECT/WITH...SELECT）
+parameters: map       ← 命名参数（如 ${status} → "已完成"）
+usedTables: [string]  ← 引用的表（权限校验用）
+usedFields: [string]  ← 引用的字段（白名单校验用）
+explanation: string   ← SQL 功能说明
+```
+
+### 关键约束（Prompt 硬编码）
+- 只允许 SELECT / WITH...SELECT
+- 禁止 INSERT/UPDATE/DELETE/DROP/ALTER
+- 禁止注释（-- 和 /* */）
+- 禁止危险函数（LOAD_FILE, SLEEP, BENCHMARK, INTO OUTFILE）
+- 只能使用提供的字段名和表名
+- 详细查询默认 LIMIT 200
+- 使用命名参数格式 ${param}
+- 温度 0.0（绝不允许随机性）
+
+---
+
+## 十、待开始：M3 SQL 安全校验
 
 ### 依赖 T02 的产出
 - 数据集、字段、指标元数据已可通过 `/api/datasets/{id}/context` 获取
@@ -278,7 +296,7 @@ clarificationQuestions: [string]
 
 ---
 
-## 十、安全备忘
+## 十一、安全备忘
 
 - [x] DeepSeek API Key 通过 `application-local.yml`（gitignored）注入
 - [x] 数据库双账号设计（`app_user` + `app_readonly`）
@@ -292,6 +310,6 @@ clarificationQuestions: [string]
 
 ---
 
-## 十一、最后更新
+## 十二、最后更新
 
-**2026-07-31**：完成 T01 + T02 + M1。测试 35/35 全部通过。下一步 M2 Text-to-SQL。
+**2026-07-31**：完成 T01 + T02 + M1 + M2。测试 45/45 全部通过。下一步 M3 SQL 安全校验。
