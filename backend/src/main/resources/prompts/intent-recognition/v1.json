@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "model": "deepseek-chat",
+  "model": "deepseek-v4-pro",
   "temperature": 0.1,
   "maxTokens": 1024,
   "description": "V1 意图识别 Prompt 配置 — 将自然语言问题解析为结构化意图 JSON",

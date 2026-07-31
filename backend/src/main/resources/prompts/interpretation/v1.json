@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "model": "deepseek-chat",
+  "model": "deepseek-v4-pro",
   "temperature": 0.2,
   "maxTokens": 2048,
   "description": "V1 数据解释 Prompt — 基于查询结果生成带证据的自然语言解释",

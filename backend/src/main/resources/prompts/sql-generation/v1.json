@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "model": "deepseek-chat",
+  "model": "deepseek-v4-pro",
   "temperature": 0.0,
   "maxTokens": 2048,
   "description": "V1 SQL生成 Prompt 配置 — 根据意图+元数据生成MySQL查询（仅SELECT）",
