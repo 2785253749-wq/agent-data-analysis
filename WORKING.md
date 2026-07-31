@@ -60,7 +60,7 @@ agent数据分析/
 | **M1** | 意图识别 | ✅ 完成 | IntentDTO + IntentRecognitionService + Prompt 文件 |
 | **M2** | Text-to-SQL | ✅ 完成 | SqlResultDTO + SqlGenerationService + Prompt 文件 |
 | **M3** | SQL 安全校验 | ✅ 完成 | SqlSafetyService：7 层防线 + 31 个安全测试 |
-| **M4** | 只读查询执行 | ⬜ 待开始 | 参数绑定 + 超时控制 + 审计 |
+| **M4** | 只读查询执行 | ✅ 完成 | QueryExecutionService + 参数绑定 + 超时控制 + 审计 |
 | **M5** | 数据解释 | ⬜ 待开始 | 自然语言结论生成 |
 | **M6** | 图表推荐 | ⬜ 待开始 | ECharts 渲染 |
 | **M7** | 分析编排器 | ⬜ 待开始 | SSE 进度推送 |
@@ -317,41 +317,79 @@ AI生成的SQL → stripComments() → isSelectStatement() → checkForbiddenKey
 
 ---
 
-## 十一、待开始：M4 只读查询执行
+## 十一、M4 完成记录
 
-### 依赖 T02 的产出
-- 数据集、字段、指标元数据已可通过 `/api/datasets/{id}/context` 获取
-- 管理后台可配置元数据
+**日期**：2026-07-31
 
-### M1 需要做的事
-1. 设计意图识别的 JSON Schema（intentType, metrics, dimensions, filters, timeRange, comparison, needsClarification）
-2. 编写 DeepSeek Prompt（system prompt + 元数据上下文注入）
-3. 创建 `IntentDTO`（Java record, 对应 JSON Schema）
-4. 创建 `IntentRecognitionService`（调用 DeepSeek, 解析 JSON 响应）
-5. 创建 `IntentRecognitionServiceTest`（正常识别、模糊输入→needsClarification、超时降级、JSON 解析失败）
-6. 创建测试用 Prompt 文件 `prompts/intent-recognition/system.txt` 和 `v1.json`
+### 完成内容
 
-### 关键风险
-- DeepSeek 返回非 JSON → 重试 + 降级为可读错误
-- 模糊时间范围（如"最近"）→ needsClarification=true，不猜测
-- 温度设置：0.1（SQL 生成用 0）
+| 文件 | 说明 |
+|------|------|
+| `dto/QueryResult.java` | 查询结果（columns, rows, rowCount, executionTimeMs, explainPlan, truncated, summary） |
+| `config/ReadOnlyDataSourceConfig.java` | 只读 JdbcTemplate（maxRows=1000, timeout=30s） |
+| `service/QueryExecutionService.java` | 参数绑定 + EXPLAIN 捕获 + 执行计时 + 结果截断检测 |
+| `QueryExecutionServiceTest.java` | 11 个测试（5 参数转换 + 6 查询执行） |
+
+### QueryResult 结构
+```
+columns: [string]       ← 列名
+rows: [{col: val, ...}] ← 数据行
+rowCount: int           ← 行数
+executionTimeMs: long   ← 执行耗时
+explainPlan: string     ← EXPLAIN 输出
+truncated: boolean      ← 是否被截断（≥1000行）
+summary: string         ← 可读摘要
+```
+
+### 执行安全保障
+- 只读 JdbcTemplate（`maxRows=1000`, `queryTimeout=30s`）
+- 命名参数转换：`${param}` 和 `:param` → 直接值替换（含引号转义）
+- EXPLAIN 计划捕获（best-effort, H2/MySQL 支持）
+- 前置条件：SQL 必须通过 SqlSafetyService 校验
+- 执行计时 + 日志记录
+
+### 测试结果
+- QueryExecutionServiceTest：11/11 通过
+- 全部测试：**87/87 通过**
 
 ---
 
-## 十二、安全备忘
+## 十二、待开始：M5 数据解释
+
+### 依赖 M4 的产出
+- QueryResult（查询结果：columns, rows, rowCount, executionTimeMs）
+- 已验证可安全执行的 SQL 查询
+
+### M5 需要做的事
+1. 设计 InterpretationDTO（conclusion, evidence, type: fact/inference/suggestion）
+2. 编写 数据解释 Prompt（只基于提供的数据下结论，每句有 evidence）
+3. 创建 ResultInterpretationService
+4. 创建测试（不编造数据、数据不足时明确说明、区分事实/推断/建议）
+5. 创建 Prompt 文件
+
+### 关键约束（从规范第 6.3 节）
+- 只基于提供的数据摘要下结论
+- 每句结论附 evidence
+- 区分事实、推断、建议
+- 数据不足时明确说明
+- 禁止引用未查询的数据
+
+---
+
+## 十三、安全备忘
 
 - [x] DeepSeek API Key 通过 `application-local.yml`（gitignored）注入
 - [x] 数据库双账号设计（`app_user` + `app_readonly`）
 - [x] 管理端点需要 HTTP Basic 认证
-- [x] 表名有正则校验（`^[a-zA-Z_][a-zA-Z0-9_]*$`）
+- [x] 表名有正则校验
 - [x] 全局异常处理器防止错误信息泄露
-- [ ] SQL 注入防护（M3 实现）
-- [ ] 字段白名单校验（M3 实现）
-- [ ] 只读数据源执行 SQL（M4 实现）
+- [x] SQL 注入防护 — M3 SqlSafetyService 7 层防线
+- [x] 字段白名单校验 — M3 checkFieldWhitelist()
+- [x] 只读数据源执行 SQL — M4 ReadOnlyDataSourceConfig
 - [ ] JWT 认证替换 HTTP Basic（待排期）
 
 ---
 
-## 十三、最后更新
+## 十四、最后更新
 
-**2026-07-31**：完成 T01 + T02 + M1 + M2 + M3。测试 76/76 全部通过。下一步 M4 只读查询执行。
+**2026-07-31**：完成 T01 + T02 + M1 + M2 + M3 + M4。测试 87/87 全部通过。下一步 M5 数据解释。
