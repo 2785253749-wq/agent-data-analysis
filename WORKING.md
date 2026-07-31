@@ -59,7 +59,7 @@ agent数据分析/
 | **T02** | 数据集元数据管理 | ✅ 完成 | CRUD 管理后台、15 个 REST 端点、22 个测试 |
 | **M1** | 意图识别 | ✅ 完成 | IntentDTO + IntentRecognitionService + Prompt 文件 |
 | **M2** | Text-to-SQL | ✅ 完成 | SqlResultDTO + SqlGenerationService + Prompt 文件 |
-| **M3** | SQL 安全校验 | ⬜ 待开始 | AST 校验 + 字段白名单 + 权限 |
+| **M3** | SQL 安全校验 | ✅ 完成 | SqlSafetyService：7 层防线 + 31 个安全测试 |
 | **M4** | 只读查询执行 | ⬜ 待开始 | 参数绑定 + 超时控制 + 审计 |
 | **M5** | 数据解释 | ⬜ 待开始 | 自然语言结论生成 |
 | **M6** | 图表推荐 | ⬜ 待开始 | ECharts 渲染 |
@@ -275,7 +275,49 @@ explanation: string   ← SQL 功能说明
 
 ---
 
-## 十、待开始：M3 SQL 安全校验
+## 十、M3 完成记录
+
+**日期**：2026-07-31
+
+### 完成内容
+
+| 文件 | 说明 |
+|------|------|
+| `dto/SqlValidationResult.java` | 校验结果（passed, reason, violations, sanitizedSql） |
+| `service/SqlSafetyService.java` | 7 层安全防线，词法分析 + 白名单校验 |
+| `SqlSafetyServiceTest.java` | 31 个安全测试 |
+
+### 7 层安全防线
+
+| 层 | 校验项 | 方法 |
+|----|--------|------|
+| 1 | 注释剥离 | `stripComments()` — 移除 `--`、`/* */`、`/*! */` |
+| 2 | 语句类型 | `isSelectStatement()` — 只允许 SELECT/WITH...SELECT |
+| 3 | 禁止关键字 | `checkForbiddenKeywords()` — INSERT/UPDATE/DELETE/DROP/ALTER/TRUNCATE/EXEC/CALL 等 19 个 |
+| 4 | 危险函数 | `checkDangerousFunctions()` — LOAD_FILE/SLEEP/BENCHMARK/GET_LOCK |
+| 5 | 字段白名单 | `checkFieldWhitelist()` — 提取 SELECT/WHERE/GROUP BY/ORDER BY 中的列引用，逐个比对 |
+| 6 | LIMIT 强制 | `ensureLimit()` — SELECT 必须有 LIMIT |
+| 7 | 注入防护 | `checkSemicolonCount()`（多分号）+ `checkUnionInjection()`（过量 UNION） |
+
+### 测试结果
+- SqlSafetyServiceTest：31/31 通过
+- 全部测试：**76/76 通过**
+
+### SQL 校验流程
+```
+AI生成的SQL → stripComments() → isSelectStatement() → checkForbiddenKeywords()
+→ checkDangerousFunctions() → checkFieldWhitelist() → ensureLimit()
+→ checkSemicolonCount() → checkUnionInjection() → SqlValidationResult
+```
+
+### 架构设计
+- 当前使用词法分析（正则表达式），可升级为 JSqlParser AST
+- 所有校验方法 public — 可独立测试每个防线
+- `validate(sql, datasetId)` 一站式入口
+
+---
+
+## 十一、待开始：M4 只读查询执行
 
 ### 依赖 T02 的产出
 - 数据集、字段、指标元数据已可通过 `/api/datasets/{id}/context` 获取
@@ -296,7 +338,7 @@ explanation: string   ← SQL 功能说明
 
 ---
 
-## 十一、安全备忘
+## 十二、安全备忘
 
 - [x] DeepSeek API Key 通过 `application-local.yml`（gitignored）注入
 - [x] 数据库双账号设计（`app_user` + `app_readonly`）
@@ -310,6 +352,6 @@ explanation: string   ← SQL 功能说明
 
 ---
 
-## 十二、最后更新
+## 十三、最后更新
 
-**2026-07-31**：完成 T01 + T02 + M1 + M2。测试 45/45 全部通过。下一步 M3 SQL 安全校验。
+**2026-07-31**：完成 T01 + T02 + M1 + M2 + M3。测试 76/76 全部通过。下一步 M4 只读查询执行。
