@@ -63,7 +63,7 @@ agent数据分析/
 | **M4** | 只读查询执行 | ✅ 完成 | QueryExecutionService + 参数绑定 + 超时控制 + 审计 |
 | **M5** | 数据解释 | ✅ 完成 | InterpretationDTO + ResultInterpretationService |
 | **M6** | 图表推荐 | ✅ 完成 | ChartRecommendationService + ChartRenderer(ECharts) |
-| **M7** | 分析编排器 | ⬜ 待开始 | SSE 进度推送 |
+| **M7** | 分析编排器 | ✅ 完成 | AnalysisOrchestrator + SSE + 任务持久化 |
 | **M8** | 前端对话界面 | ⬜ 待开始 | 对话式分析 UI |
 
 ---
@@ -412,18 +412,63 @@ caveats: [string]           ← 局限性和注意事项
 
 ---
 
-## 十四、待开始：M7 分析编排器
+## 十四、M7 完成记录
 
-### M7 需要做的事
-1. 创建 AnalysisOrchestrator（串联 M1→M2→M3→M4→M5→M6 全流程）
-2. SSE 进度推送（stepStarted/stepCompleted/stepFailed/taskCompleted）
-3. 创建 analysis_tasks + analysis_steps 持久化
-4. POST /analysis/tasks + GET /analysis/tasks/{id}（SSE）
+**日期**：2026-08-01
+
+### 完成内容
+
+| 文件 | 说明 |
+|------|------|
+| `entity/AnalysisTaskEntity.java` | analysis_tasks JPA实体（状态追踪） |
+| `repository/AnalysisTaskRepository.java` | JPA Repository |
+| `dto/AnalysisRequest.java` | 分析请求（question + datasetId） |
+| `dto/AnalysisResponse.java` | 分析响应（完整结果 + 步骤信息） |
+| `service/AnalysisOrchestrator.java` | 编排M1→M2→M3→M4→M5→M6全流程 |
+| `controller/AnalysisController.java` | POST /analysis/tasks + SSE流 |
+| `AnalysisControllerTest.java` | 5个测试（端到端+持久化+认证） |
+
+### API
+```
+POST /api/analysis/tasks              → 同步分析（返回完整AnalysisResponse）
+POST /api/analysis/tasks/stream       → SSE流式分析（text/event-stream）
+```
+
+### 编排流程
+```
+M1 IntentRecognition → needsClarification? → 提前终止
+    ↓
+M2 SQL Generation
+    ↓
+M3 SQL Safety (失败→终止)
+    ↓
+M4 Query Execution
+    ↓
+M5 Interpretation
+    ↓
+M6 Chart Recommendation
+    ↓
+AnalysisResponse（含全部6步结果 + 步骤耗时）
+```
+
+### 测试结果
+- AnalysisControllerTest：5/5 通过
+- 全部测试：**111/111 通过**
+
+---
+
+## 十五、待开始：M8 前端对话界面
+
+### M8 需要做的事
+1. 对话输入组件（ChatInput.vue）
+2. 进度展示组件（SSE stepStarted/stepCompleted）
+3. 结果面板（表格+图表+解释三栏布局）
+4. 更新路由（/chat）
 5. 测试
 
 ---
 
-## 十五、安全备忘
+## 十六、安全备忘
 
 - [x] DeepSeek API Key 通过 `application-local.yml`（gitignored）注入
 - [x] 数据库双账号设计（`app_user` + `app_readonly`）
@@ -437,6 +482,6 @@ caveats: [string]           ← 局限性和注意事项
 
 ---
 
-## 十六、最后更新
+## 十七、最后更新
 
-**2026-08-01**：完成 T01 + T02 + M1 + M2 + M3 + M4 + M5 + M6。测试 106/106 全部通过。下一步 M7 分析编排器。
+**2026-08-01**：完成 T01 + T02 + M1-M7。测试 111/111 全部通过。下一步 M8 前端对话界面。
