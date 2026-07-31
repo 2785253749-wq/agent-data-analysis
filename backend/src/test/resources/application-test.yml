@@ -1,0 +1,28 @@
+# Test profile — uses H2 in-memory database
+spring:
+  datasource:
+    url: jdbc:h2:mem:agent_analysis;DB_CLOSE_DELAY=-1;MODE=MySQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  flyway:
+    enabled: false
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  ai:
+    openai:
+      api-key: test-key-not-real
+      base-url: https://api.deepseek.com/v1
+      chat:
+        options:
+          model: deepseek-chat
+          temperature: 0.0
+
+app:
+  version: 0.1.0
+  name: AI-Agent数据分析平台

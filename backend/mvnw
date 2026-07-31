@@ -1,0 +1,51 @@
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Maven Wrapper Startup Script
+# ----------------------------------------------------------------------------
+
+# Resolve links
+PRG="$0"
+while [ -h "$PRG" ]; do
+  ls=`ls -ld "$PRG"`
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '/.*' > /dev/null; then
+    PRG="$link"
+  else
+    PRG=`dirname "$PRG"`/"$link"
+  fi
+done
+
+SAVED="`pwd`"
+cd "`dirname \"$PRG\"`/" >/dev/null
+APP_HOME="`pwd -P`"
+cd "$SAVED" >/dev/null
+
+# Determine Java executable
+if [ -n "$JAVA_HOME" ]; then
+  JAVACMD="$JAVA_HOME/bin/java"
+else
+  JAVACMD="java"
+fi
+
+# JVM config file
+JVM_CONFIG_MAVEN_PROPS="$APP_HOME/.mvn/jvm.config"
+MAVEN_OPTS=""
+
+if [ -f "$JVM_CONFIG_MAVEN_PROPS" ]; then
+  MAVEN_OPTS=`cat "$JVM_CONFIG_MAVEN_PROPS" | tr '\n' ' '`
+fi
+
+CLASSWORLDS_LAUNCHER=org.apache.maven.wrapper.MavenWrapperMain
+
+# For debugging
+# echo "JAVA_HOME=$JAVA_HOME"
+# echo "JAVACMD=$JAVACMD"
+# echo "APP_HOME=$APP_HOME"
+# echo "MAVEN_OPTS=$MAVEN_OPTS"
+
+exec "$JAVACMD" \
+  $MAVEN_OPTS \
+  -classpath "$APP_HOME/.mvn/wrapper/maven-wrapper.jar" \
+  "-Dmaven.multiModuleProjectDirectory=$APP_HOME" \
+  ${CLASSWORLDS_LAUNCHER} \
+  "$@"
