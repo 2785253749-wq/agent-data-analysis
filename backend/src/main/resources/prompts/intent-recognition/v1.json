@@ -1,0 +1,62 @@
+{
+  "version": "1.0.0",
+  "model": "deepseek-chat",
+  "temperature": 0.1,
+  "maxTokens": 1024,
+  "description": "V1 意图识别 Prompt 配置 — 将自然语言问题解析为结构化意图 JSON",
+  "systemPromptFile": "prompts/intent-recognition/system.txt",
+  "outputSchema": {
+    "type": "object",
+    "required": ["intentType", "metrics", "dimensions", "filters", "needsClarification", "clarificationQuestions"],
+    "properties": {
+      "intentType": {
+        "type": "string",
+        "enum": ["query", "aggregation", "comparison", "ranking", "detail", "correlation"]
+      },
+      "metrics": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "dimensions": {
+        "type": "array",
+        "items": { "type": "string" }
+      },
+      "filters": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["field", "operator"],
+          "properties": {
+            "field": { "type": "string" },
+            "operator": { "type": "string", "enum": ["=", "!=", ">", "<", ">=", "<=", "like", "in", "between", "is_null", "is_not_null"] },
+            "value": { "type": "string" },
+            "value2": { "type": "string" }
+          }
+        }
+      },
+      "timeRange": {
+        "oneOf": [
+          { "type": "null" },
+          {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["absolute", "relative", "latest_n_days", "latest_n_months", "year_to_date", "month_to_date"] },
+              "start": { "type": "string" },
+              "end": { "type": "string" }
+            }
+          }
+        ]
+      },
+      "comparison": {
+        "type": ["string", "null"]
+      },
+      "needsClarification": {
+        "type": "boolean"
+      },
+      "clarificationQuestions": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    }
+  }
+}

@@ -57,7 +57,7 @@ agent数据分析/
 |------|------|------|----------|
 | **T01** | 项目初始化 + 前后端骨架 | ✅ 完成 | 健康检查、DeepSeek 客户端、数据库表结构 |
 | **T02** | 数据集元数据管理 | ✅ 完成 | CRUD 管理后台、15 个 REST 端点、22 个测试 |
-| **M1** | 意图识别 | ⬜ 待开始 | DeepSeek 意图识别 Prompt + DTO |
+| **M1** | 意图识别 | ✅ 完成 | IntentDTO + IntentRecognitionService + Prompt 文件 |
 | **M2** | Text-to-SQL | ⬜ 待开始 | SQL 生成 Prompt + 结构化输出 |
 | **M3** | SQL 安全校验 | ⬜ 待开始 | AST 校验 + 字段白名单 + 权限 |
 | **M4** | 只读查询执行 | ⬜ 待开始 | 参数绑定 + 超时控制 + 审计 |
@@ -190,7 +190,74 @@ GET    /api/datasets/{id}/context                  → Agent 管道元数据
 
 ---
 
-## 八、待开始：M1 意图识别
+## 八、M1 完成记录
+
+**日期**：2026-07-31
+
+### 完成内容
+
+| 文件 | 说明 |
+|------|------|
+| `dto/IntentDTO.java` | 意图识别 JSON Schema 对应的 Java record（含 FilterDef, TimeRangeDef 嵌套 record） |
+| `dto/IntentRequest.java` | 意图识别请求（question + datasetId） |
+| `service/IntentRecognitionService.java` | 调用 DeepSeek → 解析 JSON → 返回 IntentDTO；含重试+降级逻辑 |
+| `prompts/intent-recognition/system.txt` | DeepSeek 系统提示词（意图类型定义、规则、输出格式） |
+| `prompts/intent-recognition/v1.json` | Prompt 版本元数据（模型、温度 0.1、JSON Schema） |
+
+### API
+```
+POST /api/intent/recognize
+  Body: { "question": "...", "datasetId": 1 }
+  → 200 IntentDTO
+```
+
+### 测试结果
+- IntentRecognitionServiceTest：9/9 通过（8 个 JSON 解析 + 1 个上下文测试）
+- 全部测试：**35/35 通过**
+
+### IntentDTO 结构
+```
+intentType: query|aggregation|comparison|ranking|detail|correlation
+metrics: [string]
+dimensions: [string]
+filters: [{field, operator, value, value2}]
+timeRange: {type, start, end} | null
+comparison: string | null
+needsClarification: boolean
+clarificationQuestions: [string]
+```
+
+### 关键设计决策
+- Prompt 文件在 classpath（`prompts/intent-recognition/system.txt`），服务在构造函数中加载
+- `parseIntent()` 方法 public — 可独立测试 JSON 解析逻辑（不依赖 DeepSeek）
+- 支持 markdown 代码块包裹的 JSON（```json ... ```）
+- DeepSeek 调用失败：重试 1 次 → 返回 needsClarification=true 的降级响应
+- 温度 0.1（比 SQL 生成的 0 略高，允许自然语言理解的灵活性）
+
+---
+
+## 九、待开始：M2 Text-to-SQL
+
+### 依赖 M1 的产出
+- IntentDTO（意图结构化输出）
+- `/api/datasets/{id}/context`（元数据上下文）
+
+### M2 需要做的事
+1. 设计 SqlResultDTO（sql, parameters, usedTables, usedFields, explanation）
+2. 编写 SQL 生成 Prompt（强制 SELECT/WITH SELECT，禁止 DDL/DML，必须使用元数据中的字段）
+3. 创建 SqlGenerationService（注入 IntentDTO + 数据集元数据 → 调用 DeepSeek → 返回 SQL）
+4. 创建 SqlGenerationServiceTest（只用 SELECT、字段来自元数据、含 LIMIT、不含 DDL/DML）
+5. 创建 Prompt 文件 `prompts/sql-generation/system.txt` 和 `v1.json`
+
+### 关键约束（从规范第 6.2 节）
+- 只生成一个 SELECT/WITH SELECT
+- 禁止 DDL/DML、注释、未授权字段
+- 详细查询强制 LIMIT
+- 温度 0（SQL 生成需要确定性）
+
+### 关键风险
+- DeepSeek 幻觉字段名 → 必须在 SQL 中使用的每个字段与元数据白名单比对
+- 生成的 SQL 语法错误 → 需要后续 M3 的 AST 校验
 
 ### 依赖 T02 的产出
 - 数据集、字段、指标元数据已可通过 `/api/datasets/{id}/context` 获取
@@ -211,7 +278,7 @@ GET    /api/datasets/{id}/context                  → Agent 管道元数据
 
 ---
 
-## 九、安全备忘
+## 十、安全备忘
 
 - [x] DeepSeek API Key 通过 `application-local.yml`（gitignored）注入
 - [x] 数据库双账号设计（`app_user` + `app_readonly`）
@@ -225,6 +292,6 @@ GET    /api/datasets/{id}/context                  → Agent 管道元数据
 
 ---
 
-## 十、最后更新
+## 十一、最后更新
 
-**2026-07-31**：完成 T01 + T02，准备 M1。测试 30/30 全部通过。
+**2026-07-31**：完成 T01 + T02 + M1。测试 35/35 全部通过。下一步 M2 Text-to-SQL。
