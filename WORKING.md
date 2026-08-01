@@ -614,6 +614,32 @@ M8  ████████████ ✅ 对话界面         4 tests
 
 ---
 
+## 十七·七、P2 多轮分析会话 记录（2026-08-02）
+
+### 设计（commit `9b63cfc`）
+- **tasks-as-turns**：无 conversation_messages 表；用户消息 = `analysis_tasks.question`，助手结果 = `result_json`，最近消息 = 最近关联任务 question
+- V003：`conversations` 表 + `analysis_tasks.conversation_id`（nullable，兼容旧单次任务）
+
+### 5 个补充点落实
+| 点 | 实现 |
+|----|------|
+| 1 消息持久化 | analysis_tasks 即会话轮次，ConversationView 历史由关联任务转换 |
+| 2 数据集切换拒绝 | taskCount>0 时改 datasetId → 400"该会话已有分析任务，不能切换数据集，请新建会话" |
+| 3 timeRange 不每轮覆盖 | 仅当意图明确含 timeRange 才更新；"那华东呢？"保留上一轮 |
+| 4 摘要脱敏 | lastConclusion 走 ErrorMessageSanitizer + 限 500 字，非天然安全 |
+| 5 taskCount 语义 | 统计所有已创建任务；context 仅 COMPLETED 后更新 |
+
+### 前端
+- ConversationSidebar（新建/列表/切换/重命名/归档）+ ConversationView（轮次历史+输入+结果）
+- AnalysisResult 推荐追问（规则生成）→ @followup 一键带入输入框
+- 路由 `/conversations` + 侧栏 enabled + 高亮
+
+### 测试
+- 后端 147/147（新增 ConversationContext 4 + ConversationController 6）
+- 前端 35（新增 conversationStore 4）
+
+---
+
 ## 十七·六、P1 Agent执行追踪+分析历史 记录（2026-08-02）
 
 ### 后端（commit `5994c70`）
@@ -681,6 +707,8 @@ M8  ████████████ ✅ 对话界面         4 tests
 ---
 
 ## 十八、最后更新
+
+**2026-08-02**：完成 P2「多轮分析会话」——tasks-as-turns + 结构化上下文摘要 + 推荐追问。后端 147、前端 35 测试全绿。
 
 **2026-08-02**：完成 P1「Agent 执行追踪 + 分析历史」——数据隔离+脱敏+分页列表+任务详情。后端 136 测试、前端 30 测试全绿。
 
