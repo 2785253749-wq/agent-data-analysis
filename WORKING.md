@@ -614,6 +614,30 @@ M8  ████████████ ✅ 对话界面         4 tests
 
 ---
 
+## 十七·八、P3 AI模型配置+Prompt模板管理 记录（2026-08-02）
+
+### 6 项安全约束落实（commit `715552c`）
+| 点 | 实现 |
+|----|------|
+| 1 普通用户不读正文 | active 接口只返 name/version 元数据；content/variables/BaseURL/keyRef 不暴露 |
+| 2 全局默认唯一 | 全系统仅一个 enabled+default 模型（set-default 时清除其他） |
+| 3 Base URL 限制 | 仅 HTTPS + 白名单域名(api.deepseek.com)；禁 IP/localhost/内网/自定义端口 |
+| 4 api_key_ref 白名单 | 仅 DEEPSEEK_API_KEY；响应/日志只返 apiKeyConfigured 布尔 |
+| 5 Prompt 版本不可变 | 改正文必须新建版本；旧版本只 enable/disable/archive；step 记录 version+contentHash |
+| 6 迁移不读 filesystem | ConfigSeeder(Java @PostConstruct) 硬编码种子；禁停用必需类型最后一个启用 |
+
+### 关键文件
+- 后端：AiModelEntity/Service/Controller、PromptTemplateEntity/Service/Controller、ConfigSeeder、V005
+- 3 个 LLM service 改从 PromptTemplateService 读 active prompt；DeepSeekClient 从 active model 读配置
+- AnalysisOrchestrator step 记录真实模型名 + prompt `version:hash`
+- 前端：AiModelPage、PromptTemplatePage、两个 store、路由/侧栏
+
+### 测试
+- 后端 176（新增 AiModel 7 + Prompt 6 + AdminConfig 5）
+- 前端 39（新增 adminConfig 4）
+
+---
+
 ## 十七·七、P2 多轮分析会话 记录（2026-08-02）
 
 ### 设计（commit `9b63cfc`）
@@ -708,7 +732,9 @@ M8  ████████████ ✅ 对话界面         4 tests
 
 ## 十八、最后更新
 
-**2026-08-02**：P2 脱敏补充——敏感字段标记(is_sensitive) + SensitiveDataMasker(手机/邮箱/身份证/账号掩码)，lastConclusion 走业务脱敏非 ErrorMessageSanitizer。后端 158、前端 35 测试全绿。待确认 P3 设计后进入 AI 模型配置 + Prompt 模板管理。
+**2026-08-02**：完成 P3「AI 模型配置 + Prompt 模板管理」——6 项安全约束（全局默认唯一/Base URL 白名单/key 白名单/不可变版本/contentHash/必需类型保护/普通用户不读正文）。后端 176、前端 39 测试全绿。commit `715552c`。
+
+**2026-08-02**：P2 脱敏补充——敏感字段标记(is_sensitive) + SensitiveDataMasker(手机/邮箱/身份证/账号掩码)，lastConclusion 走业务脱敏非 ErrorMessageSanitizer。后端 158、前端 35 测试全绿。
 
 **2026-08-02**：完成 P2「多轮分析会话」——tasks-as-turns + 结构化上下文摘要 + 推荐追问。后端 147、前端 35 测试全绿。
 
