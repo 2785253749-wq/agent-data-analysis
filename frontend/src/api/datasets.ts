@@ -71,6 +71,7 @@ export interface DatasetFieldResponse {
   isDimension: boolean
   isMetric: boolean
   isFilterable: boolean
+  isSensitive: boolean
   description: string | null
   createdAt: string
   updatedAt: string
@@ -83,6 +84,7 @@ export interface DatasetFieldRequest {
   isDimension?: boolean
   isMetric?: boolean
   isFilterable?: boolean
+  isSensitive?: boolean
   description?: string
 }
 

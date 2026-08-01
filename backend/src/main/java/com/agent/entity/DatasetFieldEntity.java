@@ -33,6 +33,9 @@ public class DatasetFieldEntity {
     @Column(name = "is_filterable", nullable = false)
     private Boolean isFilterable = false;
 
+    @Column(name = "is_sensitive", nullable = false)
+    private Boolean isSensitive = false;
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -79,6 +82,9 @@ public class DatasetFieldEntity {
 
     public Boolean getIsFilterable() { return isFilterable; }
     public void setIsFilterable(Boolean isFilterable) { this.isFilterable = isFilterable; }
+
+    public Boolean getIsSensitive() { return isSensitive; }
+    public void setIsSensitive(Boolean isSensitive) { this.isSensitive = isSensitive; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

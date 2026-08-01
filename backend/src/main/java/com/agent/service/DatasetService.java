@@ -125,6 +125,7 @@ public class DatasetService {
         entity.setIsDimension(request.isDimension() != null ? request.isDimension() : false);
         entity.setIsMetric(request.isMetric() != null ? request.isMetric() : false);
         entity.setIsFilterable(request.isFilterable() != null ? request.isFilterable() : false);
+        entity.setIsSensitive(request.isSensitive() != null ? request.isSensitive() : false);
         entity.setDescription(request.description());
         return DatasetFieldResponse.from(fieldRepo.save(entity));
     }
@@ -147,6 +148,7 @@ public class DatasetService {
         entity.setIsDimension(request.isDimension() != null ? request.isDimension() : false);
         entity.setIsMetric(request.isMetric() != null ? request.isMetric() : false);
         entity.setIsFilterable(request.isFilterable() != null ? request.isFilterable() : false);
+        entity.setIsSensitive(request.isSensitive() != null ? request.isSensitive() : false);
         entity.setDescription(request.description());
         return DatasetFieldResponse.from(fieldRepo.save(entity));
     }

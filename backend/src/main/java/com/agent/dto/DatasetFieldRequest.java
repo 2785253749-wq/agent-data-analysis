@@ -27,5 +27,7 @@ public record DatasetFieldRequest(
 
         Boolean isFilterable,
 
+        Boolean isSensitive,
+
         String description
 ) {}

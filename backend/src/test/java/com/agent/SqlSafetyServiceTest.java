@@ -38,13 +38,13 @@ class SqlSafetyServiceTest {
                 "安全测试集", null, "safe_test", 0L, true));
         datasetId = ds.id();
         datasetService.createField(datasetId, new DatasetFieldRequest(
-                "amount", "金额", "decimal", false, true, true, null));
+                "amount", "金额", "decimal", false, true, true, false, null));
         datasetService.createField(datasetId, new DatasetFieldRequest(
-                "region", "地区", "varchar", true, false, true, null));
+                "region", "地区", "varchar", true, false, true, false, null));
         datasetService.createField(datasetId, new DatasetFieldRequest(
-                "status", "状态", "varchar", true, false, true, null));
+                "status", "状态", "varchar", true, false, true, false, null));
         datasetService.createField(datasetId, new DatasetFieldRequest(
-                "created_at", "创建时间", "datetime", true, false, true, null));
+                "created_at", "创建时间", "datetime", true, false, true, false, null));
     }
 
     // ==================== Layer 1: Comment Stripping ====================

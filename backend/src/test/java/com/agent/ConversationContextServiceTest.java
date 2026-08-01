@@ -12,16 +12,41 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.agent.entity.DatasetFieldEntity;
+import com.agent.repository.DatasetFieldRepository;
+import com.agent.service.ConversationContextService;
+import com.agent.service.SensitiveDataMasker;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @DisplayName("ConversationContextService")
 class ConversationContextServiceTest {
 
     private ConversationContextService svc;
+    private DatasetFieldRepository fieldRepo;
 
     @BeforeEach
     void setUp() {
-        svc = new ConversationContextService(new ObjectMapper(), new ErrorMessageSanitizer());
+        fieldRepo = mock(DatasetFieldRepository.class);
+        svc = new ConversationContextService(new ObjectMapper(), new SensitiveDataMasker(), fieldRepo);
+    }
+
+    private void seedSensitiveField(Long datasetId, String name, String alias) {
+        DatasetFieldEntity f = new DatasetFieldEntity();
+        f.setDatasetId(datasetId);
+        f.setFieldName(name);
+        f.setFieldAlias(alias);
+        f.setIsSensitive(true);
+        when(fieldRepo.findAllByDatasetId(datasetId)).thenReturn(List.of(f));
     }
 
     @Test
@@ -74,15 +99,59 @@ class ConversationContextServiceTest {
     void shouldRedactAndCapLastConclusion() {
         Map<String, Object> existing = new LinkedHashMap<>();
 
-        // Conclusion contains a secret → must be redacted (补充点4)
-        String secretConclusion = "华东最高 api-key=sk-secret123 后面还有超长内容".repeat(60);
+        // Conclusion contains PII — must be masked (手机号) + capped (补充点4)
+        String piiConclusion = "华东最高 手机号13812345678 后面还有超长内容".repeat(60);
 
         Map<String, Object> merged = svc.mergeCompletedIntent(
-                existing, null, 1L, "销售数据", secretConclusion);
+                existing, null, 1L, "销售数据", piiConclusion);
 
         String conclusion = (String) merged.get("lastConclusion");
         assertNotNull(conclusion);
-        assertFalse(conclusion.contains("sk-secret123"), "secret must be redacted");
+        assertFalse(conclusion.contains("13812345678"), "phone must be masked");
         assertTrue(conclusion.length() <= 501, "conclusion capped");
+    }
+
+    @Test
+    void shouldMaskPhoneNumberInConclusion() {
+        seedSensitiveField(1L, "phone", "手机号");
+        Map<String, Object> merged = svc.mergeCompletedIntent(
+                new LinkedHashMap<>(), null, 1L, "销售数据",
+                "最高联系人电话13812345678，次高13600000000");
+        String conclusion = (String) merged.get("lastConclusion");
+        assertNotNull(conclusion);
+        assertFalse(conclusion.contains("13812345678"));
+        assertFalse(conclusion.contains("13600000000"));
+    }
+
+    @Test
+    void shouldMaskEmailInConclusion() {
+        Map<String, Object> merged = svc.mergeCompletedIntent(
+                new LinkedHashMap<>(), null, 1L, "销售数据",
+                "客户联系 test.user@example.com 反馈");
+        String conclusion = (String) merged.get("lastConclusion");
+        assertNotNull(conclusion);
+        assertFalse(conclusion.contains("test.user@example.com"));
+    }
+
+    @Test
+    void shouldMaskIdCardAndAccountInConclusion() {
+        Map<String, Object> merged = svc.mergeCompletedIntent(
+                new LinkedHashMap<>(), null, 1L, "销售数据",
+                "身份证110101199003077777 账号6222020200001234567");
+        String conclusion = (String) merged.get("lastConclusion");
+        assertNotNull(conclusion);
+        assertFalse(conclusion.contains("110101199003077777"));
+        assertFalse(conclusion.contains("6222020200001234567"));
+    }
+
+    @Test
+    void shouldMaskSensitiveFieldLabeledValue() {
+        seedSensitiveField(1L, "phone", "手机号");
+        Map<String, Object> merged = svc.mergeCompletedIntent(
+                new LinkedHashMap<>(), null, 1L, "销售数据",
+                "手机号: 13812345678 的用户");
+        String conclusion = (String) merged.get("lastConclusion");
+        assertNotNull(conclusion);
+        assertFalse(conclusion.contains("13812345678"));
     }
 }

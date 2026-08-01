@@ -82,6 +82,18 @@
             </el-icon>
           </template>
         </el-table-column>
+        <el-table-column label="敏感" width="60" align="center">
+          <template #default="{ row }">
+            <el-checkbox
+              v-if="row.isAddRow || editingId === row.id"
+              :model-value="activeForm(row).isSensitive"
+              @update:model-value="setForm(row, 'isSensitive', $event)"
+            />
+            <el-tag v-else size="small" :type="row.isSensitive ? 'danger' : 'info'" effect="light">
+              {{ row.isSensitive ? '敏感' : '-' }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <el-table-column label="描述" min-width="160">
           <template #default="{ row }">
             <el-input
@@ -143,6 +155,7 @@ interface FieldForm {
   isDimension: boolean
   isMetric: boolean
   isFilterable: boolean
+  isSensitive: boolean
   description: string
 }
 
@@ -160,12 +173,12 @@ const pageSize = ref(20)
 
 const addForm = reactive<FieldForm>({
   fieldName: '', fieldAlias: '', dataType: 'varchar',
-  isDimension: false, isMetric: false, isFilterable: false, description: '',
+  isDimension: false, isMetric: false, isFilterable: false, isSensitive: false, description: '',
 })
 
 const editForm = reactive<FieldForm>({
   fieldName: '', fieldAlias: '', dataType: 'varchar',
-  isDimension: false, isMetric: false, isFilterable: false, description: '',
+  isDimension: false, isMetric: false, isFilterable: false, isSensitive: false, description: '',
 })
 
 const ADD_ROW = { id: '__add__', isAddRow: true } as const
@@ -194,7 +207,7 @@ onMounted(async () => {
 function startAdd() { adding.value = true }
 function cancelAdd() {
   adding.value = false
-  Object.assign(addForm, { fieldName: '', fieldAlias: '', dataType: 'varchar', isDimension: false, isMetric: false, isFilterable: false, description: '' })
+  Object.assign(addForm, { fieldName: '', fieldAlias: '', dataType: 'varchar', isDimension: false, isMetric: false, isFilterable: false, isSensitive: false, description: '' })
 }
 
 async function onAdd() {
@@ -208,7 +221,7 @@ function startEdit(f: DatasetFieldResponse) {
   Object.assign(editForm, {
     fieldName: f.fieldName, fieldAlias: f.fieldAlias || '', dataType: f.dataType,
     isDimension: f.isDimension, isMetric: f.isMetric, isFilterable: f.isFilterable,
-    description: f.description || '',
+    isSensitive: f.isSensitive, description: f.description || '',
   })
 }
 

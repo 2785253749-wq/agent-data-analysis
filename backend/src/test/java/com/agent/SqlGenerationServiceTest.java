@@ -187,9 +187,9 @@ class SqlGenerationServiceTest {
                     "SQL测试集", null, "sql_test", 0L, true));
 
             datasetService.createField(ds.id(), new DatasetFieldRequest(
-                    "amount", "金额", "decimal", false, true, true, null));
+                    "amount", "金额", "decimal", false, true, true, false, null));
             datasetService.createField(ds.id(), new DatasetFieldRequest(
-                    "region", "地区", "varchar", true, false, true, null));
+                    "region", "地区", "varchar", true, false, true, false, null));
 
             IntentDTO intent = new IntentDTO(
                     "aggregation",

@@ -37,11 +37,11 @@ class QueryExecutionServiceTest {
                 "查询测试", null, "query_test", 0L, true));
         datasetId = ds.id();
         datasetService.createField(datasetId, new DatasetFieldRequest(
-                "id", "ID", "int", false, false, false, null));
+                "id", "ID", "int", false, false, false, false, null));
         datasetService.createField(datasetId, new DatasetFieldRequest(
-                "name", "名称", "varchar", true, false, true, null));
+                "name", "名称", "varchar", true, false, true, false, null));
         datasetService.createField(datasetId, new DatasetFieldRequest(
-                "amount", "金额", "decimal", false, true, true, null));
+                "amount", "金额", "decimal", false, true, true, false, null));
     }
 
     // ==================== Parameter Conversion ====================

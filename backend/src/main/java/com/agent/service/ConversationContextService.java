@@ -1,6 +1,8 @@
 package com.agent.service;
 
 import com.agent.dto.IntentDTO;
+import com.agent.entity.DatasetFieldEntity;
+import com.agent.repository.DatasetFieldRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -34,11 +36,15 @@ public class ConversationContextService {
     private static final int MAX_CONCLUSION_LEN = 500;
 
     private final ObjectMapper objectMapper;
-    private final ErrorMessageSanitizer sanitizer;
+    private final SensitiveDataMasker masker;
+    private final DatasetFieldRepository fieldRepo;
 
-    public ConversationContextService(ObjectMapper objectMapper, ErrorMessageSanitizer sanitizer) {
+    public ConversationContextService(ObjectMapper objectMapper,
+                                      SensitiveDataMasker masker,
+                                      DatasetFieldRepository fieldRepo) {
         this.objectMapper = objectMapper;
-        this.sanitizer = sanitizer;
+        this.masker = masker;
+        this.fieldRepo = fieldRepo;
     }
 
     /** Parse the stored context JSON (may be null/blank → empty map). */
@@ -84,9 +90,13 @@ public class ConversationContextService {
                     "end", String.valueOf(intent.timeRange().end())));
         }
 
-        // lastConclusion — redacted + capped (补充点4)
+        // lastConclusion — business-data masking (敏感字段标记) + capped (补充点4)
+        // ErrorMessageSanitizer is NOT used here; it's only for exception messages.
         if (lastConclusion != null && !lastConclusion.isBlank()) {
-            String safe = sanitizer.sanitize(lastConclusion);
+            List<DatasetFieldEntity> sensitive = datasetId != null
+                    ? SensitiveDataMasker.sensitiveOf(fieldRepo.findAllByDatasetId(datasetId))
+                    : List.of();
+            String safe = masker.mask(lastConclusion, sensitive);
             if (safe.length() > MAX_CONCLUSION_LEN) {
                 safe = safe.substring(0, MAX_CONCLUSION_LEN) + "…";
             }

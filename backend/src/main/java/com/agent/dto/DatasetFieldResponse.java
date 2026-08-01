@@ -16,6 +16,7 @@ public record DatasetFieldResponse(
         Boolean isDimension,
         Boolean isMetric,
         Boolean isFilterable,
+        Boolean isSensitive,
         String description,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
@@ -30,6 +31,7 @@ public record DatasetFieldResponse(
                 entity.getIsDimension(),
                 entity.getIsMetric(),
                 entity.getIsFilterable(),
+                entity.getIsSensitive(),
                 entity.getDescription(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
