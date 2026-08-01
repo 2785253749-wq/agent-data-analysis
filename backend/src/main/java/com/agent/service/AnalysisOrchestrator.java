@@ -1,8 +1,10 @@
 package com.agent.service;
 
 import com.agent.dto.*;
+import com.agent.entity.AiModelEntity;
 import com.agent.entity.AnalysisStepEntity;
 import com.agent.entity.AnalysisTaskEntity;
+import com.agent.entity.PromptTemplateEntity;
 import com.agent.repository.AnalysisStepRepository;
 import com.agent.repository.AnalysisTaskRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -33,6 +35,8 @@ public class AnalysisOrchestrator {
     private final AnalysisTaskRepository taskRepo;
     private final AnalysisStepRepository stepRepo;
     private final ResultSnapshotService snapshotService;
+    private final AiModelService modelService;
+    private final PromptTemplateService promptService;
     private final IntentRecognitionService intentService;
     private final SqlGenerationService sqlService;
     private final SqlSafetyService safetyService;
@@ -45,6 +49,8 @@ public class AnalysisOrchestrator {
             AnalysisTaskRepository taskRepo,
             AnalysisStepRepository stepRepo,
             ResultSnapshotService snapshotService,
+            AiModelService modelService,
+            PromptTemplateService promptService,
             IntentRecognitionService intentService,
             SqlGenerationService sqlService,
             SqlSafetyService safetyService,
@@ -55,6 +61,8 @@ public class AnalysisOrchestrator {
         this.taskRepo = taskRepo;
         this.stepRepo = stepRepo;
         this.snapshotService = snapshotService;
+        this.modelService = modelService;
+        this.promptService = promptService;
         this.intentService = intentService;
         this.sqlService = sqlService;
         this.safetyService = safetyService;
@@ -221,10 +229,37 @@ public class AnalysisOrchestrator {
         entity.setOutputJson(outputJson);
         entity.setErrorMessage(error);
         entity.setDurationMs(stepEnd(step));
-        entity.setModelName("deepseek-v4-pro");
-        entity.setPromptVersion("v1");
+        // Record real model + prompt (immutable) so history can replay exact versions.
+        try {
+            AiModelEntity model = modelService.activeDefault();
+            entity.setModelName(model.getModelName());
+        } catch (Exception e) {
+            entity.setModelName("unknown");
+        }
+        entity.setPromptVersion(currentPromptVersion(step.stepType));
         entity.setCompletedAt(java.time.LocalDateTime.now());
         stepRepo.save(entity);
+    }
+
+    /** Map a pipeline step to its prompt template type. */
+    private String promptTypeForStep(String stepType) {
+        return switch (stepType) {
+            case "INTENT" -> PromptTemplateEntity.TYPE_INTENT;
+            case "SQL_GEN" -> PromptTemplateEntity.TYPE_SQL_GEN;
+            case "INTERPRET" -> PromptTemplateEntity.TYPE_INTERPRET;
+            default -> null; // SQL_VALIDATE / QUERY / CHART have no LLM prompt
+        };
+    }
+
+    private String currentPromptVersion(String stepType) {
+        String type = promptTypeForStep(stepType);
+        if (type == null) return "none";
+        try {
+            PromptTemplateEntity p = promptService.activeEntity(type);
+            return p.getVersion() + ":" + p.getContentHash().substring(0, 8);
+        } catch (Exception e) {
+            return "v1";
+        }
     }
 
     /** Per-step timing holder. */

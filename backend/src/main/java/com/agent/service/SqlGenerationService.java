@@ -1,6 +1,7 @@
 package com.agent.service;
 
 import com.agent.dto.*;
+import com.agent.entity.PromptTemplateEntity;
 import com.agent.repository.DatasetFieldRepository;
 import com.agent.repository.DatasetRepository;
 import com.agent.repository.MetricsDefinitionRepository;
@@ -8,29 +9,25 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 @Service
 public class SqlGenerationService {
 
     private static final Logger log = LoggerFactory.getLogger(SqlGenerationService.class);
     private final DeepSeekClient deepSeek;
-    private final String systemPrompt;
+    private final PromptTemplateService promptService;
     private final ObjectMapper objectMapper;
     private final DatasetRepository datasetRepo;
     private final DatasetFieldRepository fieldRepo;
     private final MetricsDefinitionRepository metricRepo;
 
-    public SqlGenerationService(DeepSeekClient deepSeek, ObjectMapper objectMapper,
+    public SqlGenerationService(DeepSeekClient deepSeek, PromptTemplateService promptService,
+            ObjectMapper objectMapper,
             DatasetRepository datasetRepo, DatasetFieldRepository fieldRepo,
-            MetricsDefinitionRepository metricRepo) throws IOException {
+            MetricsDefinitionRepository metricRepo) {
         this.deepSeek = deepSeek;
-        this.systemPrompt = new ClassPathResource("prompts/sql-generation/system.txt")
-                .getContentAsString(StandardCharsets.UTF_8);
+        this.promptService = promptService;
         this.objectMapper = objectMapper;
         this.datasetRepo = datasetRepo;
         this.fieldRepo = fieldRepo;
@@ -56,7 +53,8 @@ public class SqlGenerationService {
 
     private String callModel(String userMessage) {
         try {
-            return deepSeek.chat(systemPrompt, userMessage, 0.0);
+            PromptTemplateEntity prompt = promptService.activeEntity(PromptTemplateEntity.TYPE_SQL_GEN);
+            return deepSeek.chat(prompt.getContent(), userMessage, 0.0);
         } catch (Exception e) {
             log.error("DeepSeek SQL generation failed", e);
             throw new RuntimeException("SQL生成失败: " + e.getMessage(), e);

@@ -2,28 +2,25 @@ package com.agent.service;
 
 import com.agent.dto.InterpretationDTO;
 import com.agent.dto.QueryResult;
+import com.agent.entity.PromptTemplateEntity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 @Service
 public class ResultInterpretationService {
 
     private static final Logger log = LoggerFactory.getLogger(ResultInterpretationService.class);
     private final DeepSeekClient deepSeek;
-    private final String systemPrompt;
+    private final PromptTemplateService promptService;
     private final ObjectMapper objectMapper;
 
-    public ResultInterpretationService(DeepSeekClient deepSeek, ObjectMapper objectMapper) throws IOException {
+    public ResultInterpretationService(DeepSeekClient deepSeek, PromptTemplateService promptService,
+                                       ObjectMapper objectMapper) {
         this.deepSeek = deepSeek;
-        this.systemPrompt = new ClassPathResource("prompts/interpretation/system.txt")
-                .getContentAsString(StandardCharsets.UTF_8);
+        this.promptService = promptService;
         this.objectMapper = objectMapper;
     }
 
@@ -45,7 +42,8 @@ public class ResultInterpretationService {
 
     private String callModel(String userMessage) {
         try {
-            return deepSeek.chat(systemPrompt, userMessage, 0.2);
+            PromptTemplateEntity prompt = promptService.activeEntity(PromptTemplateEntity.TYPE_INTERPRET);
+            return deepSeek.chat(prompt.getContent(), userMessage, 0.2);
         } catch (Exception e) {
             log.warn("DeepSeek interpretation failed: {}", e.getMessage());
             return "{\"conclusion\":\"AI服务暂时不可用\",\"points\":[],\"dataSufficient\":false,\"confidence\":\"low\",\"caveats\":[\"AI服务不可用\"]}";

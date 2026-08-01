@@ -1,6 +1,7 @@
 package com.agent.service;
 
 import com.agent.dto.*;
+import com.agent.entity.PromptTemplateEntity;
 import com.agent.repository.DatasetFieldRepository;
 import com.agent.repository.DatasetRepository;
 import com.agent.repository.MetricsDefinitionRepository;
@@ -8,29 +9,25 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
 @Service
 public class IntentRecognitionService {
 
     private static final Logger log = LoggerFactory.getLogger(IntentRecognitionService.class);
     private final DeepSeekClient deepSeek;
-    private final String systemPrompt;
+    private final PromptTemplateService promptService;
     private final ObjectMapper objectMapper;
     private final DatasetRepository datasetRepo;
     private final DatasetFieldRepository fieldRepo;
     private final MetricsDefinitionRepository metricRepo;
 
-    public IntentRecognitionService(DeepSeekClient deepSeek, ObjectMapper objectMapper,
+    public IntentRecognitionService(DeepSeekClient deepSeek, PromptTemplateService promptService,
+            ObjectMapper objectMapper,
             DatasetRepository datasetRepo, DatasetFieldRepository fieldRepo,
-            MetricsDefinitionRepository metricRepo) throws IOException {
+            MetricsDefinitionRepository metricRepo) {
         this.deepSeek = deepSeek;
-        this.systemPrompt = new ClassPathResource("prompts/intent-recognition/system.txt")
-                .getContentAsString(StandardCharsets.UTF_8);
+        this.promptService = promptService;
         this.objectMapper = objectMapper;
         this.datasetRepo = datasetRepo;
         this.fieldRepo = fieldRepo;
@@ -56,7 +53,8 @@ public class IntentRecognitionService {
 
     private String callModel(String userMessage) {
         try {
-            return deepSeek.chat(systemPrompt, userMessage, 0.1);
+            PromptTemplateEntity prompt = promptService.activeEntity(PromptTemplateEntity.TYPE_INTENT);
+            return deepSeek.chat(prompt.getContent(), userMessage, 0.1);
         } catch (Exception e) {
             log.warn("DeepSeek intent call failed: {}", e.getMessage());
             return buildFallbackResponse();

@@ -90,5 +90,7 @@ export function activeMenuKey(path: string): string {
   if (/^\/history/.test(path)) return '/history'
   if (/^\/trace/.test(path)) return '/trace'
   if (/^\/conversations/.test(path)) return '/conversations'
+  if (/^\/models/.test(path)) return '/models'
+  if (/^\/prompts/.test(path)) return '/prompts'
   return path
 }

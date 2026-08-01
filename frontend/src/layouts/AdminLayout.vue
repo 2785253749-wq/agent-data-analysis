@@ -62,13 +62,13 @@ const menus = computed<MenuItem[]>(() => [
   { key: '/history', path: '/history', title: '分析历史', icon: Clock },
   { key: '/trace', path: '/trace', title: 'Agent 执行追踪', icon: Monitor },
   { key: '/conversations', path: '/conversations', title: '多轮分析会话', icon: ChatDotRound },
+  { key: '/models', path: '/models', title: 'AI 模型配置', icon: Cpu },
+  { key: '/prompts', path: '/prompts', title: 'Prompt 模板管理', icon: DocumentCopy },
 
   // ---- Dev-in-progress (visible, disabled, hover tip) ----
   { key: '/dev/home', title: '系统首页', icon: HomeFilled, disabled: true, tip: DEV_TIP },
   { key: '/dev/user', title: '用户管理', icon: User, disabled: true, tip: DEV_TIP },
   { key: '/dev/tables', title: '数据表管理', icon: Collection, disabled: true, tip: DEV_TIP },
-  { key: '/dev/model', title: 'AI 模型配置', icon: Cpu, disabled: true, tip: DEV_TIP },
-  { key: '/dev/prompt', title: 'Prompt 模板管理', icon: DocumentCopy, disabled: true, tip: DEV_TIP },
   { key: '/dev/plan', title: 'Agent 分析计划', icon: SetUp, disabled: true, tip: DEV_TIP },
   { key: '/dev/logs', title: '操作日志', icon: List, disabled: true, tip: DEV_TIP },
   { key: '/dev/notify', title: '消息通知', icon: Bell, disabled: true, tip: DEV_TIP },

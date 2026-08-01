@@ -1,8 +1,8 @@
 package com.agent.service;
 
+import com.agent.entity.AiModelEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -10,27 +10,28 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Minimal DeepSeek API client — replaces Spring AI's OpenAiApi which has URL bugs in M5.
- * Calls https://api.deepseek.com/v1/chat/completions directly.
+ * DeepSeek API client — reads active model config from AiModelService.
+ * Uses the globally-default enabled model's base URL, model name, and whitelisted key ref.
  */
 @Service
 public class DeepSeekClient {
 
     private static final Logger log = LoggerFactory.getLogger(DeepSeekClient.class);
-    private static final String BASE_URL = "https://api.deepseek.com/v1";
 
+    private final AiModelService modelService;
     private final RestClient restClient;
-    private final String apiKey;
 
-    public DeepSeekClient() {
-        this.apiKey = resolveApiKey();
+    public DeepSeekClient(AiModelService modelService) {
+        this.modelService = modelService;
+        AiModelEntity m = modelService.activeDefault();
+        String apiKey = resolveApiKey(m.getApiKeyRef());
         this.restClient = RestClient.builder()
-                .baseUrl(BASE_URL)
+                .baseUrl(m.getBaseUrl())
                 .defaultHeader("Authorization", "Bearer " + apiKey)
                 .defaultHeader("Content-Type", "application/json")
                 .build();
-        log.info("DeepSeekClient initialized (baseUrl={}, apiKey={}...)", BASE_URL,
-                apiKey != null && !apiKey.isBlank() ? apiKey.substring(0, Math.min(10, apiKey.length())) : "EMPTY");
+        log.info("DeepSeekClient initialized (model={}, baseUrl={}, keyConfigured={})",
+                m.getModelName(), m.getBaseUrl(), apiKey != null && !apiKey.isBlank());
     }
 
     /**
@@ -48,8 +49,9 @@ public class DeepSeekClient {
                 Map.of("role", "user", "content", userMessage)
         );
 
+        String modelName = modelService.activeDefault().getModelName();
         Map<String, Object> body = Map.of(
-                "model", "deepseek-v4-pro",
+                "model", modelName,
                 "messages", messages,
                 "temperature", temperature
         );
@@ -80,10 +82,11 @@ public class DeepSeekClient {
         }
     }
 
-    private String resolveApiKey() {
-        String key = System.getProperty("DEEPSEEK_API_KEY");
+    private String resolveApiKey(String keyRef) {
+        // Only whitelist env-var references reach here (AiModelService validates).
+        String key = System.getProperty(keyRef);
         if (key == null || key.isBlank()) {
-            key = System.getenv("DEEPSEEK_API_KEY");
+            key = System.getenv(keyRef);
         }
         // Allow construction in test env without key — calls will fail gracefully
         return key == null ? "" : key;

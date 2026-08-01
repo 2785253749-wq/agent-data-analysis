@@ -72,6 +72,18 @@ const router = createRouter({
           component: () => import('@/views/analysis/ConversationView.vue'),
           meta: { title: '多轮分析会话' },
         },
+        {
+          path: 'models',
+          name: 'aiModels',
+          component: () => import('@/views/admin/AiModelPage.vue'),
+          meta: { title: 'AI 模型配置' },
+        },
+        {
+          path: 'prompts',
+          name: 'promptTemplates',
+          component: () => import('@/views/admin/PromptTemplatePage.vue'),
+          meta: { title: 'Prompt 模板管理' },
+        },
       ],
     },
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
