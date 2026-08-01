@@ -2,7 +2,12 @@
   <div class="admin-layout">
     <AppHeader @logout="onLogout" />
     <div class="layout-body">
-      <AppSidebar :menus="menus" :width="155" />
+      <AppSidebar
+        :menus="menus"
+        :width="155"
+        :dataset-id="currentDataset?.id ?? null"
+        @logout="onLogout"
+      />
       <main class="layout-main">
         <router-view />
       </main>
@@ -15,11 +20,13 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppSidebar from '@/components/layout/AppSidebar.vue'
-import type { MenuItem } from '@/components/layout/AppSidebar.vue'
 import { useAdminStore } from '@/stores/admin'
+import { clearSessionStorage } from '@/utils/sidebarMenu'
+import type { MenuItem } from '@/utils/sidebarMenu'
 import {
-  DataAnalysis, FolderOpened, Grid, TrendCharts, Document, Setting,
-  User, List, Histogram, DataBoard, Bell,
+  DataAnalysis, FolderOpened, Grid, TrendCharts, Document,
+  HomeFilled, User, Collection, Cpu, DocumentCopy, ChatDotRound,
+  SetUp, Monitor, List, Clock, Bell, Setting, SwitchButton,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -27,37 +34,52 @@ const store = useAdminStore()
 
 const currentDataset = computed(() => store.currentDataset)
 
-// Full menu as in the reference image. Not-yet-implemented features are disabled.
+const DEV_TIP = '该功能开发中'
+
+/**
+ * Full sidebar menu.
+ * Implemented items navigate; dev-in-progress items stay visible but disabled.
+ */
 const menus = computed<MenuItem[]>(() => [
-  { path: '/', title: 'AI 数据分析', icon: DataAnalysis },
-  { path: '/datasets', title: '数据集管理', icon: FolderOpened },
+  // ---- Implemented ----
+  { key: '/', path: '/', title: 'AI 数据分析', icon: DataAnalysis },
+  { key: '/datasets', path: '/datasets', title: '数据集管理', icon: FolderOpened },
   {
-    path: currentDataset.value
-      ? `/datasets/${currentDataset.value.id}/fields`
-      : '/datasets',
+    key: '/datasets/fields',
     title: '字段语义管理',
     icon: Grid,
-    disabled: !currentDataset.value,
+    needsDataset: true,
+    datasetSuffix: 'fields',
   },
   {
-    path: currentDataset.value
-      ? `/datasets/${currentDataset.value.id}/metrics`
-      : '/datasets',
+    key: '/datasets/metrics',
     title: '指标口径管理',
     icon: TrendCharts,
-    disabled: !currentDataset.value,
+    needsDataset: true,
+    datasetSuffix: 'metrics',
   },
-  { path: '/reports', title: '分析报告', icon: Document },
-  // ---- Reserved / not-yet-implemented menu items (kept visible, grayed "开发中") ----
-  { path: '/dashboard', title: '数据看板', icon: DataBoard, disabled: true },
-  { path: '/user', title: '用户管理', icon: User, disabled: true },
-  { path: '/logs', title: '操作日志', icon: List, disabled: true },
-  { path: '/history', title: '分析历史', icon: Histogram, disabled: true },
-  { path: '/notify', title: '消息通知', icon: Bell, disabled: true },
-  { path: '/system', title: '系统设置', icon: Setting, disabled: true },
+  { key: '/reports', path: '/reports', title: '分析报告', icon: Document },
+
+  // ---- Dev-in-progress (visible, disabled, hover tip) ----
+  { key: '/dev/home', title: '系统首页', icon: HomeFilled, disabled: true, tip: DEV_TIP },
+  { key: '/dev/user', title: '用户管理', icon: User, disabled: true, tip: DEV_TIP },
+  { key: '/dev/tables', title: '数据表管理', icon: Collection, disabled: true, tip: DEV_TIP },
+  { key: '/dev/model', title: 'AI 模型配置', icon: Cpu, disabled: true, tip: DEV_TIP },
+  { key: '/dev/prompt', title: 'Prompt 模板管理', icon: DocumentCopy, disabled: true, tip: DEV_TIP },
+  { key: '/dev/session', title: '多轮分析会话', icon: ChatDotRound, disabled: true, tip: DEV_TIP },
+  { key: '/dev/plan', title: 'Agent 分析计划', icon: SetUp, disabled: true, tip: DEV_TIP },
+  { key: '/dev/trace', title: 'Agent 执行追踪', icon: Monitor, disabled: true, tip: DEV_TIP },
+  { key: '/dev/logs', title: '操作日志', icon: List, disabled: true, tip: DEV_TIP },
+  { key: '/dev/history', title: '分析历史', icon: Clock, disabled: true, tip: DEV_TIP },
+  { key: '/dev/notify', title: '消息通知', icon: Bell, disabled: true, tip: DEV_TIP },
+  { key: '/dev/settings', title: '系统设置', icon: Setting, disabled: true, tip: DEV_TIP },
+
+  // ---- Logout ----
+  { key: 'logout', title: '退出系统', icon: SwitchButton, action: 'logout' },
 ])
 
 function onLogout() {
+  clearSessionStorage()
   router.push('/login')
 }
 </script>
