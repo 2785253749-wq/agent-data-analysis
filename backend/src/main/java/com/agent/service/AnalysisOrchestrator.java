@@ -1,7 +1,9 @@
 package com.agent.service;
 
 import com.agent.dto.*;
+import com.agent.entity.AnalysisStepEntity;
 import com.agent.entity.AnalysisTaskEntity;
+import com.agent.repository.AnalysisStepRepository;
 import com.agent.repository.AnalysisTaskRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +31,8 @@ public class AnalysisOrchestrator {
     private static final Logger log = LoggerFactory.getLogger(AnalysisOrchestrator.class);
 
     private final AnalysisTaskRepository taskRepo;
+    private final AnalysisStepRepository stepRepo;
+    private final ResultSnapshotService snapshotService;
     private final IntentRecognitionService intentService;
     private final SqlGenerationService sqlService;
     private final SqlSafetyService safetyService;
@@ -39,6 +43,8 @@ public class AnalysisOrchestrator {
 
     public AnalysisOrchestrator(
             AnalysisTaskRepository taskRepo,
+            AnalysisStepRepository stepRepo,
+            ResultSnapshotService snapshotService,
             IntentRecognitionService intentService,
             SqlGenerationService sqlService,
             SqlSafetyService safetyService,
@@ -47,6 +53,8 @@ public class AnalysisOrchestrator {
             ChartRecommendationService chartService,
             ObjectMapper objectMapper) {
         this.taskRepo = taskRepo;
+        this.stepRepo = stepRepo;
+        this.snapshotService = snapshotService;
         this.intentService = intentService;
         this.sqlService = sqlService;
         this.safetyService = safetyService;
@@ -74,10 +82,11 @@ public class AnalysisOrchestrator {
 
         try {
             // M1: Intent Recognition
-            long t1 = stepStart(task, "INTENT");
+            IntentStep intentStep = stepStart(task, "INTENT", 1);
             intent = intentService.recognize(new IntentRequest(request.question(), request.datasetId()));
             task.setIntentJson(toJson(intent));
-            steps.add(new AnalysisResponse.StepInfo("INTENT", "COMPLETED", stepEnd(t1)));
+            steps.add(new AnalysisResponse.StepInfo("INTENT", "COMPLETED", stepEnd(intentStep)));
+            stepComplete(intentStep, "COMPLETED", toJson(intent), null);
             taskRepo.save(task);
 
             // If needs clarification, stop here
@@ -90,39 +99,45 @@ public class AnalysisOrchestrator {
             }
 
             // M2: SQL Generation
-            long t2 = stepStart(task, "SQL_GEN");
+            IntentStep sqlGenStep = stepStart(task, "SQL_GEN", 2);
             SqlGenerationRequest sqlReq = new SqlGenerationRequest(
                     request.question(), intent, request.datasetId());
             sqlResult = sqlService.generate(sqlReq);
             task.setSqlText(sqlResult.sql());
-            steps.add(new AnalysisResponse.StepInfo("SQL_GEN", "COMPLETED", stepEnd(t2)));
+            steps.add(new AnalysisResponse.StepInfo("SQL_GEN", "COMPLETED", stepEnd(sqlGenStep)));
+            stepComplete(sqlGenStep, "COMPLETED", toJson(sqlResult), null);
             taskRepo.save(task);
 
             // M3: SQL Validation
-            long t3 = stepStart(task, "SQL_VALIDATE");
+            IntentStep validStep = stepStart(task, "SQL_VALIDATE", 3);
             validation = safetyService.validate(sqlResult.sql(), request.datasetId());
+            boolean valid = validation.passed();
             steps.add(new AnalysisResponse.StepInfo("SQL_VALIDATE",
-                    validation.passed() ? "COMPLETED" : "FAILED", stepEnd(t3)));
-            if (!validation.passed()) {
+                    valid ? "COMPLETED" : "FAILED", stepEnd(validStep)));
+            stepComplete(validStep, valid ? "COMPLETED" : "FAILED", toJson(validation), null);
+            if (!valid) {
                 throw new RuntimeException("SQL validation failed: " + validation.reason());
             }
 
             // M4: Query Execution
-            long t4 = stepStart(task, "QUERY");
+            IntentStep queryStep = stepStart(task, "QUERY", 4);
             queryResult = executionService.execute(validation.sanitizedSql(), sqlResult.parameters());
             task.setResultSummary(queryResult.summary());
-            steps.add(new AnalysisResponse.StepInfo("QUERY", "COMPLETED", stepEnd(t4)));
+            steps.add(new AnalysisResponse.StepInfo("QUERY", "COMPLETED", stepEnd(queryStep)));
+            stepComplete(queryStep, "COMPLETED", toJson(queryResult), null);
             taskRepo.save(task);
 
             // M5: Interpretation
-            long t5 = stepStart(task, "INTERPRET");
+            IntentStep interpretStep = stepStart(task, "INTERPRET", 5);
             interpretation = interpretationService.interpret(request.question(), queryResult);
-            steps.add(new AnalysisResponse.StepInfo("INTERPRET", "COMPLETED", stepEnd(t5)));
+            steps.add(new AnalysisResponse.StepInfo("INTERPRET", "COMPLETED", stepEnd(interpretStep)));
+            stepComplete(interpretStep, "COMPLETED", toJson(interpretation), null);
 
             // M6: Chart Recommendation
-            long t6 = stepStart(task, "CHART");
+            IntentStep chartStep = stepStart(task, "CHART", 6);
             chartSpec = chartService.recommend(queryResult, intent);
-            steps.add(new AnalysisResponse.StepInfo("CHART", "COMPLETED", stepEnd(t6)));
+            steps.add(new AnalysisResponse.StepInfo("CHART", "COMPLETED", stepEnd(chartStep)));
+            stepComplete(chartStep, "COMPLETED", toJson(chartSpec), null);
 
             task.setStatus("COMPLETED");
         } catch (Exception e) {
@@ -133,6 +148,17 @@ public class AnalysisOrchestrator {
         }
 
         task.setCompletedAt(LocalDateTime.now());
+        // Persist a bounded, redacted snapshot (rows ≤ 200, params redacted, ≤ 1 MB).
+        task.setResultJson(snapshotService.build(
+                task.getId(),
+                task.getIntentJson(),
+                task.getSqlText(),
+                sqlResult != null ? sqlResult.parameters() : null,
+                validation != null && validation.passed(),
+                validation != null ? validation.violations() : null,
+                queryResult,
+                interpretation != null ? toJson(interpretation) : null,
+                chartSpec != null ? toJson(chartSpec) : null));
         taskRepo.save(task);
 
         return buildResponse(task, intent, sqlResult, validation, queryResult,
@@ -177,12 +203,41 @@ public class AnalysisOrchestrator {
         return taskRepo.save(task);
     }
 
-    private long stepStart(AnalysisTaskEntity task, String stepType) {
-        return System.currentTimeMillis();
+    private IntentStep stepStart(AnalysisTaskEntity task, String stepType, int order) {
+        return new IntentStep(task.getId(), stepType, order, System.currentTimeMillis());
     }
 
-    private long stepEnd(long startMs) {
-        return System.currentTimeMillis() - startMs;
+    private long stepEnd(IntentStep step) {
+        return System.currentTimeMillis() - step.startMs;
+    }
+
+    private void stepComplete(IntentStep step, String status, String outputJson, String error) {
+        AnalysisStepEntity entity = new AnalysisStepEntity();
+        entity.setTaskId(step.taskId);
+        entity.setStepType(step.stepType);
+        entity.setStepOrder(step.order);
+        entity.setStatus(status);
+        entity.setOutputJson(outputJson);
+        entity.setErrorMessage(error);
+        entity.setDurationMs(stepEnd(step));
+        entity.setModelName("deepseek-v4-pro");
+        entity.setPromptVersion("v1");
+        entity.setCompletedAt(java.time.LocalDateTime.now());
+        stepRepo.save(entity);
+    }
+
+    /** Per-step timing holder. */
+    private static final class IntentStep {
+        final Long taskId;
+        final String stepType;
+        final int order;
+        final long startMs;
+        IntentStep(Long taskId, String stepType, int order, long startMs) {
+            this.taskId = taskId;
+            this.stepType = stepType;
+            this.order = order;
+            this.startMs = startMs;
+        }
     }
 
     private AnalysisResponse buildResponse(

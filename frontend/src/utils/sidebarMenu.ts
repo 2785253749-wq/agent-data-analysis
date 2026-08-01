@@ -87,5 +87,7 @@ export function activeMenuKey(path: string): string {
   if (/^\/datasets\/\d+\/metrics$/.test(path)) return '/datasets/metrics'
   if (/^\/datasets/.test(path)) return '/datasets'
   if (/^\/reports/.test(path)) return '/reports'
+  if (/^\/history/.test(path)) return '/history'
+  if (/^\/trace/.test(path)) return '/trace'
   return path
 }

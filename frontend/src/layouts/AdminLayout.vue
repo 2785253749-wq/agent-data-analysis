@@ -59,6 +59,8 @@ const menus = computed<MenuItem[]>(() => [
     datasetSuffix: 'metrics',
   },
   { key: '/reports', path: '/reports', title: '分析报告', icon: Document },
+  { key: '/history', path: '/history', title: '分析历史', icon: Clock },
+  { key: '/trace', path: '/trace', title: 'Agent 执行追踪', icon: Monitor },
 
   // ---- Dev-in-progress (visible, disabled, hover tip) ----
   { key: '/dev/home', title: '系统首页', icon: HomeFilled, disabled: true, tip: DEV_TIP },
@@ -68,9 +70,7 @@ const menus = computed<MenuItem[]>(() => [
   { key: '/dev/prompt', title: 'Prompt 模板管理', icon: DocumentCopy, disabled: true, tip: DEV_TIP },
   { key: '/dev/session', title: '多轮分析会话', icon: ChatDotRound, disabled: true, tip: DEV_TIP },
   { key: '/dev/plan', title: 'Agent 分析计划', icon: SetUp, disabled: true, tip: DEV_TIP },
-  { key: '/dev/trace', title: 'Agent 执行追踪', icon: Monitor, disabled: true, tip: DEV_TIP },
   { key: '/dev/logs', title: '操作日志', icon: List, disabled: true, tip: DEV_TIP },
-  { key: '/dev/history', title: '分析历史', icon: Clock, disabled: true, tip: DEV_TIP },
   { key: '/dev/notify', title: '消息通知', icon: Bell, disabled: true, tip: DEV_TIP },
   { key: '/dev/settings', title: '系统设置', icon: Setting, disabled: true, tip: DEV_TIP },
 

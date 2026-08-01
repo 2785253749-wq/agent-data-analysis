@@ -37,6 +37,9 @@ public class AnalysisTaskEntity {
     @Column(name = "token_usage", columnDefinition = "JSON")
     private String tokenUsage;
 
+    @Column(name = "result_json", columnDefinition = "JSON")
+    private String resultJson;
+
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
@@ -82,4 +85,6 @@ public class AnalysisTaskEntity {
     public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public String getResultJson() { return resultJson; }
+    public void setResultJson(String resultJson) { this.resultJson = resultJson; }
 }

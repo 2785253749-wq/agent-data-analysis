@@ -108,6 +108,14 @@ describe('activeMenuKey — sidebar highlight', () => {
     expect(activeMenuKey('/reports')).toBe('/reports')
   })
 
+  it('highlights history menu on /history', () => {
+    expect(activeMenuKey('/history')).toBe('/history')
+  })
+
+  it('highlights trace menu on /trace', () => {
+    expect(activeMenuKey('/trace')).toBe('/trace')
+  })
+
   it('falls back to exact path for home', () => {
     expect(activeMenuKey('/')).toBe('/')
   })
