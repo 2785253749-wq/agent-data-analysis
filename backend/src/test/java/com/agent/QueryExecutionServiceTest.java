@@ -64,10 +64,10 @@ class QueryExecutionServiceTest {
         @DisplayName("should convert :param to value")
         void shouldConvertColonParams() {
             String result = executionService.convertNamedParams(
-                    "SELECT * FROM t WHERE id = :id",
-                    Map.of("id", "42"));
-            assertTrue(result.contains("'42'"));
-            assertFalse(result.contains(":id"));
+                    "SELECT * FROM t WHERE status = :status",
+                    Map.of("status", "active"));
+            assertTrue(result.contains("'active'"), "String param should be quoted: " + result);
+            assertFalse(result.contains(":status"));
         }
 
         @Test
@@ -93,6 +93,33 @@ class QueryExecutionServiceTest {
             String sql = "SELECT * FROM t";
             String result = executionService.convertNamedParams(sql, Map.of());
             assertEquals(sql, result);
+        }
+
+        @Test
+        @DisplayName("should quote string params in ${param} format")
+        void shouldQuoteDollarStringParams() {
+            String result = executionService.convertNamedParams(
+                    "SELECT * FROM t WHERE status = ${status}",
+                    Map.of("status", "completed"));
+            assertTrue(result.contains("'completed'"), "String param must be quoted: " + result);
+        }
+
+        @Test
+        @DisplayName("should not quote numeric params")
+        void shouldNotQuoteNumericParams() {
+            String result = executionService.convertNamedParams(
+                    "SELECT * FROM t WHERE id = ${id}",
+                    Map.of("id", "42"));
+            assertTrue(result.contains("= 42"), "Numeric param must not be quoted: " + result);
+        }
+
+        @Test
+        @DisplayName("should pass through true/false/null")
+        void shouldPassThroughBooleans() {
+            String result = executionService.convertNamedParams(
+                    "SELECT * FROM t WHERE active = ${active}",
+                    Map.of("active", "true"));
+            assertTrue(result.contains("= true"));
         }
     }
 

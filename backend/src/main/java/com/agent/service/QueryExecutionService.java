@@ -94,21 +94,40 @@ public class QueryExecutionService {
     // ---- Private helpers ----
 
     /**
-     * Convert named parameters (${param} or :param) to positional ? for JdbcTemplate.
+     * Convert named parameters (${param} or :param) to inline SQL literals.
+     * String values are wrapped in single quotes with escaping; numeric values are not.
      */
     public String convertNamedParams(String sql, Map<String, String> params) {
         if (params == null || params.isEmpty()) return sql;
 
         String result = sql;
-        // Handle ${param} format
         for (Map.Entry<String, String> e : params.entrySet()) {
-            result = result.replace("${" + e.getKey() + "}", e.getValue());
-        }
-        // Handle :param format
-        for (Map.Entry<String, String> e : params.entrySet()) {
-            result = result.replace(":" + e.getKey(), "'" + e.getValue().replace("'", "''") + "'");
+            String value = e.getValue() == null ? "" : e.getValue();
+            String literal = toSqlLiteral(value);
+            result = result.replace("${" + e.getKey() + "}", literal);
+            result = result.replace(":" + e.getKey(), literal);
         }
         return result;
+    }
+
+    /**
+     * Convert a string value to a safe SQL literal.
+     * Numeric values (and null/booleans) pass through; strings get quoted with '' escaping.
+     */
+    String toSqlLiteral(String value) {
+        if (value == null) return "NULL";
+        String trimmed = value.trim();
+        // Booleans and NULL pass through
+        if (trimmed.equalsIgnoreCase("true") || trimmed.equalsIgnoreCase("false")
+                || trimmed.equalsIgnoreCase("null")) {
+            return trimmed;
+        }
+        // Numeric values pass through unquoted
+        if (trimmed.matches("-?\\d+(\\.\\d+)?")) {
+            return trimmed;
+        }
+        // Everything else is a string literal with escaped single quotes
+        return "'" + value.replace("'", "''") + "'";
     }
 
     /**

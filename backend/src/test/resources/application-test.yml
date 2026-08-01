@@ -16,7 +16,7 @@ spring:
 
   ai:
     openai:
-      api-key: test-key-not-real
+      api-key: test-key
       base-url: https://api.deepseek.com/v1
       chat:
         options:

@@ -267,6 +267,22 @@ class SqlSafetyServiceTest {
             safetyService.ensureLimit("SELECT * FROM t LIMIT 50", violations);
             assertTrue(violations.isEmpty());
         }
+
+        @Test
+        @DisplayName("should exempt pure aggregate query without LIMIT")
+        void shouldExemptPureAggregate() {
+            List<String> violations = new ArrayList<>();
+            safetyService.ensureLimit("SELECT SUM(amount) FROM t", violations);
+            assertTrue(violations.isEmpty(), "Pure aggregate should not require LIMIT: " + violations);
+        }
+
+        @Test
+        @DisplayName("should not exempt SELECT * from LIMIT requirement")
+        void shouldNotExemptSelectStar() {
+            List<String> violations = new ArrayList<>();
+            safetyService.ensureLimit("SELECT * FROM t", violations);
+            assertFalse(violations.isEmpty(), "SELECT * must require LIMIT");
+        }
     }
 
     // ==================== Layer 7: Injection Prevention ====================

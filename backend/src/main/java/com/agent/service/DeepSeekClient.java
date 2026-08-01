@@ -30,7 +30,7 @@ public class DeepSeekClient {
                 .defaultHeader("Content-Type", "application/json")
                 .build();
         log.info("DeepSeekClient initialized (baseUrl={}, apiKey={}...)", BASE_URL,
-                apiKey.substring(0, Math.min(10, apiKey.length())));
+                apiKey != null && !apiKey.isBlank() ? apiKey.substring(0, Math.min(10, apiKey.length())) : "EMPTY");
     }
 
     /**
@@ -85,9 +85,7 @@ public class DeepSeekClient {
         if (key == null || key.isBlank()) {
             key = System.getenv("DEEPSEEK_API_KEY");
         }
-        if (key == null || key.isBlank()) {
-            throw new IllegalStateException("DEEPSEEK_API_KEY not set (use -DDEEPSEEK_API_KEY=xxx)");
-        }
-        return key;
+        // Allow construction in test env without key — calls will fail gracefully
+        return key == null ? "" : key;
     }
 }

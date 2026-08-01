@@ -162,10 +162,18 @@ public class SqlSafetyService {
      * Extract column references from SQL clauses.
      * Heuristic: find identifiers after SELECT (before FROM), in WHERE, GROUP BY, ORDER BY, HAVING.
      * Skips table-qualified references (table.column → extracts column).
+     * ORDER BY may reference SELECT aliases — those are collected and exempted.
      */
     Set<String> extractColumnReferences(String sql) {
         Set<String> refs = new HashSet<>();
-        String upper = sql.toUpperCase();
+        Set<String> selectAliases = new HashSet<>();
+
+        // Collect SELECT aliases (AS xxx) to exempt them from ORDER BY checks
+        Pattern aliasPattern = Pattern.compile("(?i)\\bAS\\s+([a-zA-Z_][a-zA-Z0-9_]*)");
+        Matcher am = aliasPattern.matcher(sql);
+        while (am.find()) {
+            selectAliases.add(am.group(1).toLowerCase());
+        }
 
         // Extract the column list between SELECT and FROM
         Pattern selectCols = Pattern.compile("SELECT\\s+(.+?)\\s+FROM", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
@@ -191,12 +199,18 @@ public class SqlSafetyService {
             extractIds(gm.group(1), refs);
         }
 
-        // Extract columns from ORDER BY
+        // Extract columns from ORDER BY — skip SELECT aliases
         Pattern orderCols = Pattern.compile("ORDER\\s+BY\\s+(.+?)(?=LIMIT|$)",
                 Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
         Matcher om = orderCols.matcher(sql);
         if (om.find()) {
-            extractIds(om.group(1), refs);
+            Set<String> orderRefs = new HashSet<>();
+            extractIds(om.group(1), orderRefs);
+            for (String r : orderRefs) {
+                if (!selectAliases.contains(r)) {
+                    refs.add(r);
+                }
+            }
         }
 
         return refs;
@@ -210,6 +224,9 @@ public class SqlSafetyService {
                 .replaceAll("\\$\\{[^}]*\\}", "") // named parameters
                 .replaceAll("[<>!=]+", " ")       // operators
                 .replaceAll("\\d+", "")           // numbers
+                .replaceAll("(?i)\\bAS\\s+[a-zA-Z_][a-zA-Z0-9_]*", " ") // AS aliases
+                .replaceAll("(?i)\\bASC\\b", " ")
+                .replaceAll("(?i)\\bDESC\\b", " ")
                 .trim();
 
         // Extract identifiers: table.column → column, or standalone column
@@ -226,12 +243,16 @@ public class SqlSafetyService {
                 "asc", "desc", "limit", "offset", "as", "distinct", "all", "union",
                 "with", "case", "when", "then", "else", "end", "left", "right",
                 "inner", "outer", "cross", "full", "count", "sum", "avg", "min",
-                "max", "ifnull", "coalesce", "cast", "convert", "date",
+                "max", "ifnull", "coalesce", "cast", "convert", "date", "datetime",
                 "year", "month", "day", "hour", "minute", "second", "interval",
                 "true", "false", "exists", "any", "some", "concat", "substring",
                 "replace", "trim", "upper", "lower", "length", "round", "floor",
                 "ceil", "ceiling", "abs", "mod", "power", "sqrt", "log", "exp",
-                "if", "set", "values", "table", "into"
+                "if", "set", "values", "table", "into",
+                // MySQL date/time functions
+                "date_format", "date_add", "date_sub", "datediff", "timestampdiff",
+                "timestampadd", "extract", "weekday", "dayofweek", "dayofmonth",
+                "dayofyear", "quarter", "week", "last_day", "str_to_date"
         ));
 
         // Get remaining identifiers after stripping dotted refs
@@ -248,12 +269,58 @@ public class SqlSafetyService {
     public String ensureLimit(String sql, List<String> violations) {
         String upper = sql.toUpperCase();
         if (!upper.contains("LIMIT")) {
-            // Only require LIMIT for queries that might return many rows
-            if (upper.contains("SELECT") && !upper.contains("LIMIT")) {
-                violations.add("Query is missing LIMIT clause");
+            // Aggregate queries (no GROUP BY, only aggregate functions) return few rows — exempt
+            if (isPureAggregateQuery(sql)) {
+                return sql;
             }
+            violations.add("Query is missing LIMIT clause");
         }
         return sql; // Return as-is; LIMIT injection happens in M4 execution layer
+    }
+
+    /**
+     * Detect queries that return a single aggregated row (e.g. SELECT SUM(amount) FROM t)
+     * or GROUP BY aggregates. These don't need LIMIT to be safe.
+     */
+    boolean isPureAggregateQuery(String sql) {
+        String upper = sql.toUpperCase();
+        // If there's GROUP BY, result set is bounded by distinct groups — still require LIMIT
+        // Actually: aggregate without GROUP BY returns 1 row. Aggregate WITH GROUP BY can be large.
+        if (upper.contains("GROUP BY")) {
+            return false;
+        }
+        // Find SELECT..FROM clause
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(
+                "SELECT\\s+(.+?)\\s+FROM", Pattern.CASE_INSENSITIVE | Pattern.DOTALL).matcher(sql);
+        if (!m.find()) return false;
+        String selectList = m.group(1).trim();
+        // SELECT * is NOT an aggregate
+        if (selectList.equals("*") || selectList.equalsIgnoreCase("ALL")) {
+            return false;
+        }
+        // Remove AS aliases and string literals
+        String cleaned = selectList
+                .replaceAll("(?i)\\bAS\\s+[a-zA-Z_][a-zA-Z0-9_]*", " ")
+                .replaceAll("'[^']*'", "")
+                .replaceAll("\\$\\{[^}]*\\}", "");
+        // Check every identifier is inside a function call or is a keyword.
+        // Strategy: for each item (split by comma), verify it reduces to nothing
+        // after stripping function names, arguments, aliases, and literals.
+        String[] items = cleaned.split(",");
+        for (String item : items) {
+            String trimmed = item.trim();
+            // Strip function(...) — remove everything inside parens plus the function name
+            String noArgs = trimmed.replaceAll("\\([^)]*\\)", "");
+            if (noArgs.contains("(")) return false; // unbalanced parens → not a clean aggregate
+            // Strip function name before parens
+            noArgs = noArgs.replaceAll("[a-zA-Z_][a-zA-Z0-9_]*\\s*$", "")
+                    .replaceAll("[\\s,*+\\-<>/()]+", " ")
+                    .trim();
+            if (!noArgs.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public void checkSemicolonCount(String sql, List<String> violations) {
