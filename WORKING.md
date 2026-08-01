@@ -614,7 +614,54 @@ M8  ████████████ ✅ 对话界面         4 tests
 
 ---
 
+## 十七·五、前端 Element Plus 重构记录（2026-08-02）
+
+### 背景
+按用户提供的实例图（传统 Element Plus 管理后台），将前端从深色顶栏风格重构为：
+- 纯白 Header（Logo + 面包屑 + 头像/管理员下拉）
+- 155px 白色侧栏（选中项浅蓝 #ecf5ff 背景 + 蓝色 #409eff 文字）
+- 主内容浅灰 #f5f7fa + 白色卡片
+- 主色 #409EFF
+
+### 改动清单
+| 类别 | 文件 |
+|------|------|
+| 新增布局 | `layouts/AdminLayout.vue`, `components/layout/AppHeader.vue`, `components/layout/AppSidebar.vue` |
+| 新增共享 | `components/common/FilterToolbar.vue`, `components/common/DataTableCard.vue` |
+| 新增分析组件 | `components/analysis/SqlBlock.vue`, `QueryResultTable.vue`, `InterpretationBlock.vue` |
+| 新增工具 | `utils/reportStorage.ts`（localStorage 报告） |
+| 新增页面 | `views/AnalysisView.vue`（AI分析）, `views/reports/AnalysisReport.vue`（报告） |
+| 重构页面 | DatasetList / DatasetForm / FieldManager / MetricManager → el-table/el-form |
+| 重构组件 | AnalysisResult（4标签页+保存报告）, ChartRenderer（自适应高度+饼图限宽） |
+| 修改 | App.vue, main.ts, router/index.ts, useAnalysis.ts |
+| 兼容转发 | 旧 `views/admin/AdminLayout.vue`, `views/ChatView.vue` 保留为转发 |
+
+### 关键决策
+- **Element Plus 全量引入**（非按需），tsconfig 加 `element-plus/global`
+- 路由重构 `/` → AdminLayout；`/datasets*`、`/reports`；旧 `/admin/*` 全部重定向
+- 报告页用 localStorage（后端无报告接口），从最近一次分析生成
+- 侧栏完整菜单 + 未实现功能置 disabled"开发中"
+- 批量删除 = N 次顺序 DELETE（后端无批量端点）
+
+### 踩过的坑
+| 坑 | 解决 |
+|----|------|
+| `v-model` 绑定三目表达式（`v-model="a ? x : y"`）编译错误 | 改 `:model-value` + `@update:model-value="$event"` + `activeForm(row)` |
+| 模板内带类型箭头函数（`(v: string) =>`）触发 vite:vue 崩溃 | 改具名函数或 `$event` |
+| el-checkbox 的 model-value 类型是 `CheckboxValueType` | 事件参数用 `string \| number \| boolean` |
+| `DataTableCard` 用 `el-card` + 复杂 slot 触发 vite:vue 代码生成 bug | 改纯 div + 条件渲染 slot |
+
+### 验证
+- `vue-tsc --noEmit` 0 错误
+- `vitest run` 4 通过
+- `vite build` 成功
+- 端到端：中文分析 6 步全 COMPLETED，4 标签数据源（SQL/查询结果/图表/解读）就绪
+
+---
+
 ## 十八、最后更新
+
+**2026-08-02**：前端完成 Element Plus 管理后台重构（实例图为验收标准），vue-tsc 0 错误 + vitest 4 通过 + build 成功。
 
 **2026-08-01**：MVP + DeepSeek 连通 + **端到端全链路跑通**。
 
