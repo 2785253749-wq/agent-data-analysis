@@ -606,9 +606,33 @@ M8  ████████████ ✅ 对话界面         4 tests
 
 ## 十八、最后更新
 
-**2026-08-01**：MVP 全部完成 + DeepSeek 连通性修复。核心进展：
-1. ✅ 原生 `DeepSeekClient` 替换 Spring AI（解决 URI bug）
-2. ✅ `deepseek-v4-pro` 验证通过：意图识别 + SQL 生成成功
-3. ⏳ 待处理：数据集字段乱码重建（字段白名单才能通过）
-4. ⏳ 待推送：commit `7f4a7ee`（GitHub 网络不稳）
-5. 后端 111 测试全绿；启动命令见第四节（必须用 jvmArguments 传 API Key）
+**2026-08-01**：MVP + DeepSeek 连通 + **端到端全链路跑通**。
+
+### 端到端验证结果（5 场景）
+| 场景 | 结果 | 图表 |
+|------|------|------|
+| 按地区汇总销售额 | ✅ | pie |
+| TOP 3 商品销量 | ✅ | horizontal_bar |
+| 已完成订单总销售额 | ✅ 81,150.00 | bar |
+| 2025 月度销售趋势 | ⚠️ H2 方言差异 | — |
+| 按地区平均订单额 | ✅ | pie |
+
+Test 4 失败原因：DeepSeek 生成 MySQL 语法 `DATE_FORMAT()`，H2 本地库不支持。**生产 MySQL 可正常**，非 bug。
+
+### 本轮修复（commit `140784c`）
+1. **字段白名单别名**：`AS total_sales` 不再误判为未知字段（SELECT/ORDER BY 别名豁免）
+2. **SQL 字面量引号**：`${status}`→`'completed'`（字符串加引号+转义，数字/布尔不引）
+   - 修复 `WHERE status = completed` 裸字面量执行错误
+3. **纯聚合 LIMIT 豁免**：`SELECT SUM(amount)` 无 GROUP BY 豁免 LIMIT；`SELECT *` 不豁免
+4. **MySQL 日期函数**：`DATE_FORMAT` 等加入白名单关键词
+5. **演示数据**：`db/demo-schema.sql` + `demo-data.sql`（sales 24 行 + users 10 行），启动自动加载
+6. **测试**：116/116 通过
+
+### 当前状态
+- 后端运行中（H2 + local profile），启动命令见第四节
+- 前端运行中（http://localhost:5173）
+- 数据集需在每次后端重启后重建（H2 内存库数据清空），可用管理后台或 Python 脚本
+
+### 待办
+- ⏳ 推送 3 个本地 commit（`7f4a7ee`, `140784c`, `0eaaea7`）到 GitHub（网络恢复时）
+- ⏳ 可选：增加 H2 兼容的日期函数转换层，让 Test 4 也能通过
