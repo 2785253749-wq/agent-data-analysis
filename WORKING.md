@@ -13,8 +13,11 @@
 | **项目名** | AI-Agent 数据分析平台 |
 | **GitHub** | https://github.com/2785253749-wq/agent-data-analysis |
 | **规范文档** | `AI-Agent数据分析平台_CC+DeepSeek开发流程.docx`（根目录） |
-| **技术栈** | Spring Boot 3.4 + Java 17 + Vue 3 + TypeScript + MySQL + DeepSeek |
-| **开发协作** | Claude Code 作为开发协作器（读代码、写代码、运行测试）；DeepSeek 作为 Agent 推理模型 |
+| **技术栈** | Spring Boot 3.4 + Java 17 + Vue 3 + TypeScript + H2(本地) + MySQL(生产) + DeepSeek |
+| **开发协作** | Claude Code（Claude，当前由 DeepSeek-V4-Flash 驱动）作为开发协作器；DeepSeek **v4-pro** 作为 Agent 推理模型 |
+| **模型** | `deepseek-v4-pro`（含推理链 reasoning_content） |
+| **API Key** | `sk-ac97...`（见 application-local.yml，gitignored） |
+| **调用方式** | **原生 DeepSeekClient**（RestClient 直调），已移除 Spring AI（有 URL bug） |
 
 ---
 
@@ -30,12 +33,12 @@ agent数据分析/
 │   └── src/
 │       ├── main/java/com/agent/
 │       │   ├── AgentAnalysisApplication.java
-│       │   ├── config/         # SecurityConfig, DeepSeekConfig, DataSourceConfig
+│       │   ├── config/         # SecurityConfig, DataSourceConfig, ReadOnlyDataSourceConfig
 │       │   ├── controller/     # REST 控制器
 │       │   ├── dto/            # Java record DTOs
 │       │   ├── entity/         # JPA 实体
 │       │   ├── repository/     # Spring Data Repositories
-│       │   ├── service/        # 业务逻辑
+│       │   ├── service/        # 业务逻辑（含 DeepSeekClient 原生调用）
 │       │   ├── exception/      # 异常 + GlobalExceptionHandler
 │       │   └── validation/     # 自定义校验
 │       └── test/               # 测试（H2 内存数据库）
@@ -71,13 +74,22 @@ agent数据分析/
 ## 四、环境速查
 
 ```bash
-# Java
+# Java 环境
 export JAVA_HOME="/c/Program Files/Microsoft/jdk-17.0.13.11-hotspot"
 export MAVEN_HOME="/tmp/maven_inst/apache-maven-3.9.9"
-export PATH="$MAVEN_HOME/bin:$PATH"
+export PATH="$MAVEN_HOME/bin:$JAVA_HOME/bin:$PATH"
+
+# ⚠️ 启动后端（本地 profile = H2 内存数据库，无需 Docker/MySQL）
+# 注意：API Key 必须通过 -Dspring-boot.run.jvmArguments 传入（fork JVM 不继承 shell env）
+cd backend
+mvn spring-boot:run -Dspring-boot.run.profiles=local \
+  "-Dspring-boot.run.jvmArguments=-DDEEPSEEK_API_KEY=sk-ac97ef38c95f4995a326f1c6d9504755"
 
 # 运行后端测试
 cd backend && mvn test -Dspring.profiles.active=test --no-transfer-progress
+
+# 启动前端
+cd frontend && npm run dev
 
 # 运行前端测试
 cd frontend && npx vitest run
@@ -88,6 +100,15 @@ cd frontend && npx vue-tsc --noEmit
 # Git 操作
 cd "d:/Users/Asus/Desktop/agent数据分析"
 ```
+
+### ⚠️ 关键技术约束（踩过的坑）
+
+| 坑 | 原因 | 解决 |
+|----|------|------|
+| `URI with undefined scheme` | Spring AI 1.0.0-M5 `OpenAiApi` 有 URL 构建 bug | 用原生 `DeepSeekClient`（RestClient 直调） |
+| `API key not configured` | `mvn spring-boot:run` fork 的 JVM 不继承 bash `export` | 用 `-Dspring-boot.run.jvmArguments="-DDEEPSEEK_API_KEY=..."` 传入系统属性 |
+| `base-url` 被解析为空 | YAML 占位符 `${DEEPSEEK_BASE_URL:https://...}` 中的冒号被误解析 | 直接在 `application.yml` 写死 `base-url`/`model` |
+| `Invalid UTF-8` 中文乱码 | Windows curl 直传中文 JSON 编码损坏 | 用 `--data-binary @/tmp/xxx.json`（Python 生成 UTF-8 文件） |
 
 ---
 
@@ -478,6 +499,61 @@ AnalysisResponse（含全部6步结果 + 步骤耗时）
 
 ---
 
+## 十五·五、DeepSeek 连通性修复记录（关键里程碑）
+
+**日期**：2026-08-01  
+**Commit**：`7f4a7ee`（已本地提交，push 待网络恢复）
+
+### 背景
+MVP 测试阶段发现：DeepSeek 调用一直报 `URI with undefined scheme`，无法真正跑通。
+
+### 根因
+Spring AI `1.0.0-M5` 的 `OpenAiApi` 内部 URL 构建有 bug（`RestClient` 传 `https://api.deepseek.com` 被解析成无 scheme 的 URI），反复配置 `base-url` 均无法解决。
+
+### 解决方案：原生 DeepSeekClient
+```java
+// DeepSeekClient.java — 基于 Spring RestClient 直调 DeepSeek API
+String response = restClient.post()
+    .uri("/chat/completions")
+    .body(Map.of(
+        "model", "deepseek-v4-pro",
+        "messages", List.of(
+            Map.of("role", "system", "content", systemPrompt),
+            Map.of("role", "user", "content", userMessage)),
+        "temperature", temperature))
+    .retrieve().body(Map.class);
+```
+
+### 改动清单
+| 文件 | 改动 |
+|------|------|
+| `service/DeepSeekClient.java` | **新增** — 原生 DeepSeek API 客户端（RestClient 直调） |
+| `config/DeepSeekConfig.java` | **删除** — Spring AI OpenAiApi 配置（有 bug） |
+| `pom.xml` | **移除** `spring-ai-openai-spring-boot-starter` 依赖 |
+| `IntentRecognitionService` | ChatClient → DeepSeekClient |
+| `SqlGenerationService` | ChatClient → DeepSeekClient |
+| `ResultInterpretationService` | ChatClient → DeepSeekClient |
+| `application.yml` | base-url/model 写死（不再用占位符） |
+| `HealthController` | API key 检测改用 Spring 注入 |
+
+### 验证结果 ✅
+- **模型**：`deepseek-v4-pro`（含推理链 `reasoning_content`）
+- **意图识别**：`"summarize sales by region"` → `aggregation` + metrics=[sales] + dimensions=[region]
+- **SQL 生成**：
+  ```sql
+  SELECT region, SUM(amount) AS total_amount FROM sales
+  GROUP BY region ORDER BY total_amount DESC LIMIT 5
+  ```
+  正确识别表名 `sales`、字段 `region`/`amount`、GROUP BY、ORDER BY、LIMIT 5
+- 全流程 M1→M2 打通，M3 校验正常拦截（字段白名单误报，见下）
+
+### ⚠️ 已知问题（下一步处理）
+**数据集字段名乱码**：用 Windows curl 直传中文 JSON 时编码损坏（`Invalid UTF-8`），导致字段名如 `region` 存成乱码，M3 字段白名单校验时误报"not in whitelist"。
+- 解决方向：重建数据集，用 `python3 -c` 生成 UTF-8 JSON 文件 + `--data-binary @/tmp/xxx.json` 创建
+- 已创建的数据集 ID=1（Sales Data，8 字段 + 4 指标），字段别名乱码，需重建
+
+---
+
 ## 十六、MVP 完成总结
 
 ```
@@ -514,7 +590,7 @@ M8  ████████████ ✅ 对话界面         4 tests
 
 ## 十七、安全备忘
 
-- [x] DeepSeek API Key 通过 `application-local.yml`（gitignored）注入
+- [x] DeepSeek API Key 通过 `application-local.yml`（gitignored）+ 系统属性传入
 - [x] 数据库双账号设计（`app_user` + `app_readonly`）
 - [x] 管理端点需要 HTTP Basic 认证
 - [x] 表名有正则校验
@@ -522,10 +598,17 @@ M8  ████████████ ✅ 对话界面         4 tests
 - [x] SQL 注入防护 — M3 SqlSafetyService 7 层防线
 - [x] 字段白名单校验 — M3 checkFieldWhitelist()
 - [x] 只读数据源执行 SQL — M4 ReadOnlyDataSourceConfig
+- [x] DeepSeek 原生客户端接入 — 已验证 v4-pro 连通
 - [ ] JWT 认证替换 HTTP Basic（待排期）
+- [ ] 修复数据集字段中文乱码问题（重建数据集）
 
 ---
 
 ## 十八、最后更新
 
-**2026-08-01**：🎉 MVP 全部完成！T01+T02+M1-M8 共 10 个任务，115 个测试全部通过，9 个 commit 已推送 GitHub。
+**2026-08-01**：MVP 全部完成 + DeepSeek 连通性修复。核心进展：
+1. ✅ 原生 `DeepSeekClient` 替换 Spring AI（解决 URI bug）
+2. ✅ `deepseek-v4-pro` 验证通过：意图识别 + SQL 生成成功
+3. ⏳ 待处理：数据集字段乱码重建（字段白名单才能通过）
+4. ⏳ 待推送：commit `7f4a7ee`（GitHub 网络不稳）
+5. 后端 111 测试全绿；启动命令见第四节（必须用 jvmArguments 传 API Key）
