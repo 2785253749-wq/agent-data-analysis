@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import type { AnalysisResponse } from '@/api/datasets'
 import apiClient from '@/api/client'
+import { saveLatestAnalysis } from '@/utils/reportStorage'
 
 export interface StepEvent {
   type: string
@@ -26,6 +27,7 @@ export function useAnalysis() {
         datasetId,
       })
       result.value = data
+      saveLatestAnalysis(data)
     } catch (e: any) {
       error.value = e.response?.data?.error || e.message || '分析失败'
     } finally {

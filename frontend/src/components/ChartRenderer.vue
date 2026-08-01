@@ -20,13 +20,13 @@
       </table>
     </div>
 
-    <div v-else class="chart-view">
+    <div v-else :class="['chart-view', { 'pie-limited': spec.type === 'pie' }]">
       <h3 v-if="spec.title">{{ spec.title }}</h3>
       <v-chart
         v-if="chartOption"
         :option="chartOption"
         :autoresize="true"
-        style="width: 100%; height: 400px"
+        :style="{ width: '100%', height: chartHeight + 'px' }"
       />
       <div v-else class="empty">无法渲染图表：数据格式不正确</div>
     </div>
@@ -53,6 +53,15 @@ use([CanvasRenderer, BarChart, LineChart, PieChart, ScatterChart,
 const props = defineProps<{
   spec: ChartSpecDTO
 }>()
+
+// Responsive height based on data volume; pie stays compact.
+const chartHeight = computed(() => {
+  const { type, labels } = props.spec
+  const n = labels?.length || 0
+  if (type === 'pie') return 360
+  if (type === 'horizontal_bar') return Math.max(320, n * 30 + 100)
+  return Math.max(360, n * 22 + 120) // bar / line / scatter
+})
 
 const chartOption = computed(() => {
   const { type, labels, datasets } = props.spec
@@ -88,7 +97,8 @@ const chartOption = computed(() => {
       base.series = datasets.map(d => ({
         name: d.label,
         type: 'pie',
-        radius: '60%',
+        radius: '62%',
+        center: ['50%', '46%'],
         data: labels.map((l, i) => ({ name: l, value: d.data[i] })),
         itemStyle: d.color ? { color: d.color } : undefined,
       }))
@@ -138,6 +148,15 @@ const chartOption = computed(() => {
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+}
+
+.chart-view {
+  width: 100%;
+}
+
+.pie-limited {
+  max-width: 560px;
+  margin: 0 auto;
 }
 
 .chart-container h3 {
