@@ -85,6 +85,12 @@ cd backend
 mvn spring-boot:run -Dspring-boot.run.profiles=local \
   "-Dspring-boot.run.jvmArguments=-DDEEPSEEK_API_KEY=sk-ac97ef38c95f4995a326f1c6d9504755"
 
+# ⚠️ 启动后端（必须先 clean compile 再 run，否则 db 资源可能丢失）
+cd backend
+mvn clean compile -Dmaven.test.skip=true
+mvn spring-boot:run -Dmaven.test.skip=true -Dspring-boot.run.profiles=local \
+  "-Dspring-boot.run.jvmArguments=-DDEEPSEEK_API_KEY=sk-ac97ef38c95f4995a326f1c6d9504755"
+
 # 运行后端测试
 cd backend && mvn test -Dspring.profiles.active=test --no-transfer-progress
 
@@ -109,6 +115,10 @@ cd "d:/Users/Asus/Desktop/agent数据分析"
 | `API key not configured` | `mvn spring-boot:run` fork 的 JVM 不继承 bash `export` | 用 `-Dspring-boot.run.jvmArguments="-DDEEPSEEK_API_KEY=..."` 传入系统属性 |
 | `base-url` 被解析为空 | YAML 占位符 `${DEEPSEEK_BASE_URL:https://...}` 中的冒号被误解析 | 直接在 `application.yml` 写死 `base-url`/`model` |
 | `Invalid UTF-8` 中文乱码 | Windows curl 直传中文 JSON 编码损坏 | 用 `--data-binary @/tmp/xxx.json`（Python 生成 UTF-8 文件） |
+| **DB中文双重编码乱码** | `spring.sql.init` 读 UTF-8 的 .sql 用了 JVM 默认 GBK（Windows file.encoding=GBK） | `application-local.yml` 加 `spring.sql.init.encoding: UTF-8`（**勿用 `-Dfile.encoding=UTF-8`，会破坏 Spring Security 认证导致全 401**） |
+| **`No schema scripts found`** | `mvn spring-boot:run` 单独跑时 db 资源未可靠复制 | **必须先 `mvn clean compile` 再 `mvn spring-boot:run`** |
+| `/api/health` 返回 401 | `-Dfile.encoding=UTF-8` 破坏了 Security 配置加载 | 移除该参数，改用 `spring.sql.init.encoding` |
+| 前端 Basic 认证 | 浏览器 axios 无认证头 → 401 | `client.ts` 加 `Authorization: Basic btoa(admin:test123)` |
 
 ---
 
@@ -634,5 +644,13 @@ Test 4 失败原因：DeepSeek 生成 MySQL 语法 `DATE_FORMAT()`，H2 本地�
 - 数据集需在每次后端重启后重建（H2 内存库数据清空），可用管理后台或 Python 脚本
 
 ### 待办
-- ⏳ 推送 3 个本地 commit（`7f4a7ee`, `140784c`, `0eaaea7`）到 GitHub（网络恢复时）
+- ⏳ 推送本地 commit 到 GitHub（网络恢复时）
 - ⏳ 可选：增加 H2 兼容的日期函数转换层，让 Test 4 也能通过
+- ⏳ `application-local.yml` 中的 `spring.sql.init.encoding: UTF-8` 是 gitignored 本地配置，换机器需重新添加
+
+### 中文乱码根因修复（重要，2026-08-01）
+- **现象**：饼图/柱状图中文标签乱码（如华东显示为「鉗廝笢」）
+- **根因**：`spring.sql.init` 读取 UTF-8 的 `demo-data.sql` 时使用 JVM 默认编码（Windows 为 GBK），中文变成双重编码（UTF-8 字节按 GBK 解释再编码）
+- **修复**：`application-local.yml` 添加 `spring.sql.init.encoding: UTF-8`
+- **验证**：华东码点 U+534E U+4E1C（正确）、华北 U+534E U+5317、华南 U+534E U+5357、西部 U+897F U+90E8
+- **警告**：不要用 `-Dfile.encoding=UTF-8`（会让 Spring Security 认证失效，所有接口 401）
