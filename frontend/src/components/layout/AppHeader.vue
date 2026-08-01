@@ -2,7 +2,7 @@
   <header class="app-header">
     <!-- Left: logo + title -->
     <div class="header-left">
-      <el-icon class="logo-icon" :size="24" color="#409eff">
+      <el-icon class="logo-icon" :size="20" color="#409eff">
         <Cpu />
       </el-icon>
       <span class="logo-title">AI Agent 数据分析平台</span>
@@ -71,10 +71,10 @@ function onCommand(cmd: string) {
   display: flex;
   align-items: center;
   gap: 24px;
-  height: 56px;
-  padding: 0 20px;
+  height: 52px;
+  padding: 0 16px;
   background: #fff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid #ebeef5;
   z-index: 10;
   flex-shrink: 0;
 }
@@ -88,12 +88,12 @@ function onCommand(cmd: string) {
 
 .logo-icon {
   background: #ecf5ff;
-  border-radius: 6px;
-  padding: 3px;
+  border-radius: 5px;
+  padding: 2px;
 }
 
 .logo-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #303133;
   white-space: nowrap;

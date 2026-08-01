@@ -58,11 +58,25 @@
     <div v-if="analysis.result.value" class="result-section">
       <AnalysisResult :result="analysis.result.value" />
     </div>
+
+    <!-- Empty state: centered, no large blank area -->
+    <el-card
+      v-else-if="!analysis.loading.value && !analysis.error.value"
+      shadow="never"
+      class="empty-card"
+    >
+      <el-empty description="输入问题并点击「开始分析」，结果将展示在这里">
+        <template #image>
+          <el-icon :size="72" color="#c0c4cc"><DataAnalysis /></el-icon>
+        </template>
+      </el-empty>
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { DataAnalysis } from '@element-plus/icons-vue'
 import { useAnalysis } from '@/composables/useAnalysis'
 import { getDatasetList } from '@/api/datasets'
 import type { DatasetResponse } from '@/api/datasets'
@@ -112,4 +126,13 @@ function submit() {
 .loading-text { margin-top: 12px; color: #909399; }
 
 .error-alert { margin-bottom: 16px; }
+
+.empty-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.empty-card :deep(.el-empty) {
+  padding: 48px 0;
+}
 </style>

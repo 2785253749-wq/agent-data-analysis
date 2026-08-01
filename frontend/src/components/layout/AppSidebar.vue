@@ -57,8 +57,9 @@ const activeMenu = computed(() => {
 }
 
 .sidebar-menu :deep(.el-menu-item) {
-  height: 44px;
-  line-height: 44px;
+  height: 42px;
+  line-height: 42px;
+  font-size: 14px;
 }
 
 /* Active item: light blue bg + blue text (NOT solid dark blue) */
@@ -74,5 +75,19 @@ const activeMenu = computed(() => {
 
 .sidebar-menu :deep(.el-menu-item:hover) {
   background-color: #f0f2f5;
+}
+
+/* Disabled (dev-in-progress) items: gray text + icon, no hover bg */
+.sidebar-menu :deep(.el-menu-item.is-disabled) {
+  color: #c0c4cc;
+  cursor: not-allowed;
+}
+
+.sidebar-menu :deep(.el-menu-item.is-disabled .el-icon) {
+  color: #c0c4cc;
+}
+
+.sidebar-menu :deep(.el-menu-item.is-disabled:hover) {
+  background-color: transparent;
 }
 </style>

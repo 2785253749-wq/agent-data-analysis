@@ -19,6 +19,7 @@ import type { MenuItem } from '@/components/layout/AppSidebar.vue'
 import { useAdminStore } from '@/stores/admin'
 import {
   DataAnalysis, FolderOpened, Grid, TrendCharts, Document, Setting,
+  User, List, Histogram, DataBoard, Bell,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -47,7 +48,12 @@ const menus = computed<MenuItem[]>(() => [
     disabled: !currentDataset.value,
   },
   { path: '/reports', title: '分析报告', icon: Document },
-  // Reserved / not-yet-implemented menu items (kept visible as 开发中)
+  // ---- Reserved / not-yet-implemented menu items (kept visible, grayed "开发中") ----
+  { path: '/dashboard', title: '数据看板', icon: DataBoard, disabled: true },
+  { path: '/user', title: '用户管理', icon: User, disabled: true },
+  { path: '/logs', title: '操作日志', icon: List, disabled: true },
+  { path: '/history', title: '分析历史', icon: Histogram, disabled: true },
+  { path: '/notify', title: '消息通知', icon: Bell, disabled: true },
   { path: '/system', title: '系统设置', icon: Setting, disabled: true },
 ])
 
