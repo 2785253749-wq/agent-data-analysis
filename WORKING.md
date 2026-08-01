@@ -614,6 +614,27 @@ M8  ████████████ ✅ 对话界面         4 tests
 
 ---
 
+## 十七·六、P1 Agent执行追踪+分析历史 记录（2026-08-02）
+
+### 后端（commit `5994c70`）
+- `analysis_tasks` 加 `result_json` 列（V002 迁移）：快照截断 rows≤200、参数值脱敏、>1MB 兜底只留元数据
+- 启用 `analysis_steps` 表：编排器每步持久化（类型/状态/耗时/输出摘要，不含 prompt/key）
+- `GET /api/analysis/tasks` 分页列表（状态/数据集/关键词筛选）；`GET /analysis/tasks/{id}` 详情
+- **数据隔离**：普通用户仅本人任务，管理员本组织任务，datasetIds 取交集，无权详情返 404
+- **脱敏**：`ErrorMessageSanitizer` 白名单优先 + 正则兜底（JDBC URL/IP/密钥/堆栈）；列表不含敏感字段；sqlText 仅 owner/admin 返回
+
+### 前端
+- `api/analysis.ts` + `stores/history.ts`（Pinia）
+- `TaskListPage.vue` 共享列表组件，`mode=history`（问题/结果/时间）/ `mode=trace`（状态/耗时/步骤数）
+- `TaskDetail.vue`：步骤时间线 + SQL/查询结果/图表/解读四标签（复用现有组件）
+- 路由 `/history` `/trace`，侧栏两项 enabled + 高亮
+
+### 测试
+- 后端 136/136（新增 ErrorMessageSanitizer 7 + ResultSnapshot 3 + TaskHistory 10）
+- 前端 30（新增 historyStore 4 + sidebarMenu 更新）
+
+---
+
 ## 十七·五、前端 Element Plus 重构记录（2026-08-02）
 
 ### 背景
@@ -660,6 +681,8 @@ M8  ████████████ ✅ 对话界面         4 tests
 ---
 
 ## 十八、最后更新
+
+**2026-08-02**：完成 P1「Agent 执行追踪 + 分析历史」——数据隔离+脱敏+分页列表+任务详情。后端 136 测试、前端 30 测试全绿。
 
 **2026-08-02**：前端完成 Element Plus 管理后台重构（实例图为验收标准），vue-tsc 0 错误 + vitest 4 通过 + build 成功。
 
