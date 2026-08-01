@@ -3,12 +3,18 @@ import axios from 'axios'
 /**
  * Axios instance configured for backend API.
  * Vite dev server proxies /api → localhost:8080.
+ * Uses HTTP Basic auth (dev credentials, same as backend application.yml).
  */
+const AUTH_USER = 'admin'
+const AUTH_PASSWORD = 'test123'
+const authToken = btoa(`${AUTH_USER}:${AUTH_PASSWORD}`)
+
 const apiClient = axios.create({
   baseURL: '/api',
-  timeout: 30000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
+    Authorization: `Basic ${authToken}`,
   },
 })
 
