@@ -198,6 +198,7 @@ public class AnalysisOrchestrator {
         task.setUserId(0L);
         task.setQuestion(request.question());
         task.setDatasetId(request.datasetId());
+        task.setConversationId(request.conversationId());
         task.setStatus("RUNNING");
         task.setStartedAt(LocalDateTime.now());
         return taskRepo.save(task);

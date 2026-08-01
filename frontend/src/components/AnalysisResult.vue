@@ -37,6 +37,21 @@
       </el-button>
     </div>
 
+    <!-- Recommended follow-ups (one-click into input box) -->
+    <div v-if="followups.length" class="followups">
+      <span class="followup-label">推荐追问：</span>
+      <el-button
+        v-for="(q, i) in followups"
+        :key="i"
+        size="small"
+        type="primary"
+        plain
+        @click="$emit('followup', q)"
+      >
+        {{ q }}
+      </el-button>
+    </div>
+
     <el-card v-if="hasAnyResult" shadow="never" class="result-card">
       <el-tabs v-model="activeTab">
         <el-tab-pane v-if="result.sqlResult?.sql" label="SQL" name="sql">
@@ -69,6 +84,8 @@ import type { AnalysisResponse } from '@/api/datasets'
 
 const props = defineProps<{ result: AnalysisResponse }>()
 
+const emit = defineEmits<{ (e: 'followup', question: string): void }>()
+
 const activeTab = ref('sql')
 
 const stepLabels: Record<string, string> = {
@@ -84,6 +101,40 @@ const hasAnyResult = computed(
   () => !!(props.result.sqlResult?.sql || props.result.queryResult ||
     props.result.chartSpec || props.result.interpretation),
 )
+
+// Rule-based recommended follow-ups derived from the analysis result.
+const followups = computed(() => {
+  const q: string[] = []
+  const intent = props.result.intent
+  const dims: string[] = intent?.dimensions || []
+
+  // Based on intent type + dimensions
+  if (intent?.intentType === 'aggregation' && dims.length) {
+    const dim = dims[0]
+    q.push(`按${dim}排序看前10`)
+  }
+  if (intent?.intentType === 'ranking' || dims.length) {
+    q.push(`对比各${dims[0] || '维度'}趋势`)
+  }
+  if (intent?.timeRange || intent?.metrics?.length) {
+    q.push('换成按月查看趋势')
+  }
+  if (props.result.queryResult?.rowCount) {
+    q.push('看明细数据')
+  }
+
+  // De-dupe, cap at 3
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const item of q) {
+    if (!seen.has(item)) {
+      seen.add(item)
+      out.push(item)
+      if (out.length >= 3) break
+    }
+  }
+  return out
+})
 
 function saveToReport() {
   saveReport({
@@ -133,5 +184,18 @@ function saveToReport() {
 .result-card {
   border-radius: 8px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.06);
+}
+
+.followups {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.followup-label {
+  font-size: 13px;
+  color: #909399;
 }
 </style>

@@ -66,6 +66,12 @@ const router = createRouter({
           props: { mode: 'trace' },
           meta: { title: 'Agent 执行追踪' },
         },
+        {
+          path: 'conversations',
+          name: 'conversations',
+          component: () => import('@/views/analysis/ConversationView.vue'),
+          meta: { title: '多轮分析会话' },
+        },
       ],
     },
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },

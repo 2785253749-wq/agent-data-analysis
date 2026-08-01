@@ -13,6 +13,9 @@ public class AnalysisTaskEntity {
     @Column(name = "user_id", nullable = false)
     private Long userId = 0L;
 
+    @Column(name = "conversation_id")
+    private Long conversationId;
+
     @Column(name = "dataset_id")
     private Long datasetId;
 
@@ -87,4 +90,6 @@ public class AnalysisTaskEntity {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public String getResultJson() { return resultJson; }
     public void setResultJson(String resultJson) { this.resultJson = resultJson; }
+    public Long getConversationId() { return conversationId; }
+    public void setConversationId(Long conversationId) { this.conversationId = conversationId; }
 }

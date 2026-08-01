@@ -45,7 +45,7 @@ class AnalysisControllerTest {
         @DisplayName("should create analysis task with empty dataset and handle gracefully")
         void shouldCreateTaskAndHandleGracefully() throws Exception {
             String json = objectMapper.writeValueAsString(
-                    new AnalysisRequest("测试问题", null));
+                    new AnalysisRequest("测试问题", null, null));
 
             // The analysis will likely fail because DeepSeek is not available in test,
             // but the endpoint should still return a valid JSON response
@@ -62,7 +62,7 @@ class AnalysisControllerTest {
         @DisplayName("should return 400 when question is blank")
         void shouldRejectBlankQuestion() throws Exception {
             String json = objectMapper.writeValueAsString(
-                    new AnalysisRequest("", 1L));
+                    new AnalysisRequest("", 1L, null));
 
             mockMvc.perform(post("/api/analysis/tasks")
                             .with(httpBasic("admin", "test123"))
@@ -75,7 +75,7 @@ class AnalysisControllerTest {
         @DisplayName("should require authentication")
         void shouldRequireAuth() throws Exception {
             String json = objectMapper.writeValueAsString(
-                    new AnalysisRequest("test", null));
+                    new AnalysisRequest("test", null, null));
 
             mockMvc.perform(post("/api/analysis/tasks")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -113,7 +113,7 @@ class AnalysisControllerTest {
         @DisplayName("should persist task to database when analysis runs")
         void shouldPersistTask() throws Exception {
             String json = objectMapper.writeValueAsString(
-                    new AnalysisRequest("持久化测试", null));
+                    new AnalysisRequest("持久化测试", null, null));
 
             String respBody = mockMvc.perform(post("/api/analysis/tasks")
                             .with(httpBasic("admin", "test123"))

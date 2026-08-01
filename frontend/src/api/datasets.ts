@@ -10,11 +10,22 @@ export interface ChartSpecDTO {
   options?: Record<string, unknown>
 }
 
+export interface IntentDTO {
+  intentType: string
+  metrics: string[]
+  dimensions: string[]
+  filters: { field: string; operator: string; value: string; value2?: string }[]
+  timeRange: { type: string; start: string | null; end: string | null } | null
+  comparison: string | null
+  needsClarification: boolean
+  clarificationQuestions: string[]
+}
+
 export interface AnalysisResponse {
   taskId: number
   question: string
   status: string
-  intent?: { intentType: string; needsClarification: boolean; clarificationQuestions: string[] }
+  intent?: IntentDTO
   sqlResult?: { sql: string; explanation: string; usedTables: string[]; usedFields: string[]; parameters?: Record<string, string> }
   validationResult?: { passed: boolean; reason: string; violations: string[] }
   queryResult?: { columns: string[]; rows: Record<string, unknown>[]; rowCount: number; executionTimeMs: number; truncated: boolean; summary: string }

@@ -116,6 +116,10 @@ describe('activeMenuKey — sidebar highlight', () => {
     expect(activeMenuKey('/trace')).toBe('/trace')
   })
 
+  it('highlights conversations menu on /conversations', () => {
+    expect(activeMenuKey('/conversations')).toBe('/conversations')
+  })
+
   it('falls back to exact path for home', () => {
     expect(activeMenuKey('/')).toBe('/')
   })
