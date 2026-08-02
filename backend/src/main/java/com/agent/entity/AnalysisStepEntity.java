@@ -36,6 +36,9 @@ public class AnalysisStepEntity {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
+    @Column(name = "failure_category", length = 50)
+    private String failureCategory; // SQL_VALIDATION / QUERY_EXECUTION / MODEL_TIMEOUT / MODEL_RESPONSE / UNEXPECTED
+
     @Column(name = "duration_ms")
     private Long durationMs;
 
@@ -73,6 +76,8 @@ public class AnalysisStepEntity {
     public void setOutputJson(String outputJson) { this.outputJson = outputJson; }
     public String getErrorMessage() { return errorMessage; }
     public void setErrorMessage(String errorMessage) { this.errorMessage = errorMessage; }
+    public String getFailureCategory() { return failureCategory; }
+    public void setFailureCategory(String failureCategory) { this.failureCategory = failureCategory; }
     public Long getDurationMs() { return durationMs; }
     public void setDurationMs(Long durationMs) { this.durationMs = durationMs; }
     public String getModelName() { return modelName; }

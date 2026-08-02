@@ -38,6 +38,7 @@ public class AnalysisOrchestrator {
     private final AuditLogService auditLogService;
     private final AiModelService modelService;
     private final PromptTemplateService promptService;
+    private final FailureClassifier failureClassifier;
     private final IntentRecognitionService intentService;
     private final SqlGenerationService sqlService;
     private final SqlSafetyService safetyService;
@@ -53,6 +54,7 @@ public class AnalysisOrchestrator {
             AuditLogService auditLogService,
             AiModelService modelService,
             PromptTemplateService promptService,
+            FailureClassifier failureClassifier,
             IntentRecognitionService intentService,
             SqlGenerationService sqlService,
             SqlSafetyService safetyService,
@@ -66,6 +68,7 @@ public class AnalysisOrchestrator {
         this.auditLogService = auditLogService;
         this.modelService = modelService;
         this.promptService = promptService;
+        this.failureClassifier = failureClassifier;
         this.intentService = intentService;
         this.sqlService = sqlService;
         this.safetyService = safetyService;
@@ -250,6 +253,9 @@ public class AnalysisOrchestrator {
             entity.setModelName("unknown");
         }
         entity.setPromptVersion(currentPromptVersion(step.stepType));
+        if ("FAILED".equals(status)) {
+            entity.setFailureCategory(failureClassifier.classify(step.stepType, error));
+        }
         entity.setCompletedAt(java.time.LocalDateTime.now());
         stepRepo.save(entity);
     }

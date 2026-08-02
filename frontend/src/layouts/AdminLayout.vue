@@ -42,7 +42,8 @@ const DEV_TIP = '该功能开发中'
  */
 const menus = computed<MenuItem[]>(() => [
   // ---- Implemented ----
-  { key: '/', path: '/', title: 'AI 数据分析', icon: DataAnalysis },
+  { key: '/home', path: '/home', title: '系统首页', icon: HomeFilled },
+  { key: '/analysis', path: '/analysis', title: 'AI 数据分析', icon: DataAnalysis },
   { key: '/datasets', path: '/datasets', title: '数据集管理', icon: FolderOpened },
   {
     key: '/datasets/fields',
@@ -67,7 +68,6 @@ const menus = computed<MenuItem[]>(() => [
   { key: '/logs', path: '/logs', title: '操作日志', icon: List },
 
   // ---- Dev-in-progress (visible, disabled, hover tip) ----
-  { key: '/dev/home', title: '系统首页', icon: HomeFilled, disabled: true, tip: DEV_TIP },
   { key: '/dev/user', title: '用户管理', icon: User, disabled: true, tip: DEV_TIP },
   { key: '/dev/tables', title: '数据表管理', icon: Collection, disabled: true, tip: DEV_TIP },
   { key: '/dev/plan', title: 'Agent 分析计划', icon: SetUp, disabled: true, tip: DEV_TIP },

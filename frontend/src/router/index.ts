@@ -9,6 +9,16 @@ const router = createRouter({
       children: [
         {
           path: '',
+          redirect: '/home',
+        },
+        {
+          path: 'home',
+          name: 'dashboard',
+          component: () => import('@/views/DashboardView.vue'),
+          meta: { title: '系统首页' },
+        },
+        {
+          path: 'analysis',
           name: 'analysis',
           component: () => import('@/views/AnalysisView.vue'),
           meta: { title: 'AI 数据分析' },
