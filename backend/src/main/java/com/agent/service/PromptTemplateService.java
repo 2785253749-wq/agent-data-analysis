@@ -1,5 +1,6 @@
 package com.agent.service;
 
+import com.agent.annotation.Audit;
 import com.agent.dto.PromptTemplateDTO;
 import com.agent.entity.PromptTemplateEntity;
 import com.agent.exception.ResourceNotFoundException;
@@ -58,6 +59,7 @@ public class PromptTemplateService {
      * version = current max for the type + 1.
      */
     @Transactional
+    @Audit(action = "PROMPT_CREATE", resourceType = "PROMPT")
     public PromptTemplateDTO create(PromptTemplateDTO.CreateRequest req) {
         int nextVersion = repo.findFirstByTypeOrderByVersionDesc(req.type())
                 .map(p -> p.getVersion() + 1).orElse(1);
@@ -84,6 +86,7 @@ public class PromptTemplateService {
     }
 
     @Transactional
+    @Audit(action = "PROMPT_ENABLE", resourceType = "PROMPT")
     public PromptTemplateDTO enable(Long id) {
         PromptTemplateEntity p = find(id);
         if (Boolean.TRUE.equals(p.getIsArchived())) {
@@ -101,6 +104,7 @@ public class PromptTemplateService {
     }
 
     @Transactional
+    @Audit(action = "PROMPT_DISABLE", resourceType = "PROMPT")
     public PromptTemplateDTO disable(Long id) {
         PromptTemplateEntity p = find(id);
         if (!Boolean.TRUE.equals(p.getIsEnabled())) return toDTO(p);
@@ -116,6 +120,7 @@ public class PromptTemplateService {
     }
 
     @Transactional
+    @Audit(action = "PROMPT_ARCHIVE", resourceType = "PROMPT")
     public void archive(Long id) {
         PromptTemplateEntity p = find(id);
         if (Boolean.TRUE.equals(p.getIsEnabled())) {

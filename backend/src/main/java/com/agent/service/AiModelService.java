@@ -1,5 +1,6 @@
 package com.agent.service;
 
+import com.agent.annotation.Audit;
 import com.agent.dto.AiModelDTO;
 import com.agent.dto.AiModelRequest;
 import com.agent.entity.AiModelEntity;
@@ -51,6 +52,7 @@ public class AiModelService {
     }
 
     @Transactional
+    @Audit(action = "MODEL_CREATE", resourceType = "MODEL")
     public AiModelDTO create(AiModelRequest req) {
         validateBaseUrl(req.baseUrl());
         validateKeyRef(req.apiKeyRef());
@@ -65,6 +67,7 @@ public class AiModelService {
     }
 
     @Transactional
+    @Audit(action = "MODEL_UPDATE", resourceType = "MODEL")
     public AiModelDTO update(Long id, AiModelRequest req) {
         validateBaseUrl(req.baseUrl());
         validateKeyRef(req.apiKeyRef());
@@ -79,6 +82,7 @@ public class AiModelService {
     }
 
     @Transactional
+    @Audit(action = "MODEL_DELETE", resourceType = "MODEL")
     public void delete(Long id) {
         AiModelEntity m = find(id);
         if (Boolean.TRUE.equals(m.getIsDefault())) {
@@ -88,6 +92,7 @@ public class AiModelService {
     }
 
     @Transactional
+    @Audit(action = "MODEL_SET_DEFAULT", resourceType = "MODEL")
     public AiModelDTO setDefault(Long id) {
         AiModelEntity m = find(id);
         clearDefault();

@@ -1,5 +1,6 @@
 package com.agent.service;
 
+import com.agent.annotation.Audit;
 import com.agent.dto.*;
 import com.agent.entity.*;
 import com.agent.exception.ResourceNotFoundException;
@@ -44,6 +45,7 @@ public class DatasetService {
     }
 
     @Transactional
+    @Audit(action = "DATASET_CREATE", resourceType = "DATASET")
     public DatasetResponse create(DatasetRequest request) {
         // Check uniqueness
         if (datasetRepo.existsByOrgIdAndTableName(
@@ -62,6 +64,7 @@ public class DatasetService {
     }
 
     @Transactional
+    @Audit(action = "DATASET_UPDATE", resourceType = "DATASET")
     public DatasetResponse update(Long id, DatasetRequest request) {
         DatasetEntity entity = findDataset(id);
 
@@ -83,6 +86,7 @@ public class DatasetService {
     }
 
     @Transactional
+    @Audit(action = "DATASET_DELETE", resourceType = "DATASET")
     public void delete(Long id) {
         if (!datasetRepo.existsById(id)) {
             throw new ResourceNotFoundException("Dataset", id);
@@ -107,6 +111,7 @@ public class DatasetService {
     }
 
     @Transactional
+    @Audit(action = "FIELD_CREATE", resourceType = "FIELD")
     public DatasetFieldResponse createField(Long datasetId, DatasetFieldRequest request) {
         ensureDatasetExists(datasetId);
 
@@ -131,6 +136,7 @@ public class DatasetService {
     }
 
     @Transactional
+    @Audit(action = "FIELD_UPDATE", resourceType = "FIELD")
     public DatasetFieldResponse updateField(Long datasetId, Long fieldId, DatasetFieldRequest request) {
         ensureDatasetExists(datasetId);
         DatasetFieldEntity entity = findField(fieldId);
@@ -154,6 +160,7 @@ public class DatasetService {
     }
 
     @Transactional
+    @Audit(action = "FIELD_DELETE", resourceType = "FIELD")
     public void deleteField(Long datasetId, Long fieldId) {
         ensureDatasetExists(datasetId);
         if (!fieldRepo.existsById(fieldId)) {
@@ -178,6 +185,7 @@ public class DatasetService {
     }
 
     @Transactional
+    @Audit(action = "METRIC_CREATE", resourceType = "METRIC")
     public MetricsDefinitionResponse createMetric(Long datasetId, MetricsDefinitionRequest request) {
         ensureDatasetExists(datasetId);
         MetricsDefinitionEntity entity = new MetricsDefinitionEntity();
@@ -189,6 +197,7 @@ public class DatasetService {
     }
 
     @Transactional
+    @Audit(action = "METRIC_UPDATE", resourceType = "METRIC")
     public MetricsDefinitionResponse updateMetric(Long datasetId, Long metricId, MetricsDefinitionRequest request) {
         ensureDatasetExists(datasetId);
         MetricsDefinitionEntity entity = findMetric(metricId);
@@ -199,6 +208,7 @@ public class DatasetService {
     }
 
     @Transactional
+    @Audit(action = "METRIC_DELETE", resourceType = "METRIC")
     public void deleteMetric(Long datasetId, Long metricId) {
         ensureDatasetExists(datasetId);
         if (!metricRepo.existsById(metricId)) {

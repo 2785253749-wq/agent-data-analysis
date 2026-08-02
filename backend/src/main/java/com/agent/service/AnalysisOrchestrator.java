@@ -35,6 +35,7 @@ public class AnalysisOrchestrator {
     private final AnalysisTaskRepository taskRepo;
     private final AnalysisStepRepository stepRepo;
     private final ResultSnapshotService snapshotService;
+    private final AuditLogService auditLogService;
     private final AiModelService modelService;
     private final PromptTemplateService promptService;
     private final IntentRecognitionService intentService;
@@ -49,6 +50,7 @@ public class AnalysisOrchestrator {
             AnalysisTaskRepository taskRepo,
             AnalysisStepRepository stepRepo,
             ResultSnapshotService snapshotService,
+            AuditLogService auditLogService,
             AiModelService modelService,
             PromptTemplateService promptService,
             IntentRecognitionService intentService,
@@ -61,6 +63,7 @@ public class AnalysisOrchestrator {
         this.taskRepo = taskRepo;
         this.stepRepo = stepRepo;
         this.snapshotService = snapshotService;
+        this.auditLogService = auditLogService;
         this.modelService = modelService;
         this.promptService = promptService;
         this.intentService = intentService;
@@ -78,6 +81,8 @@ public class AnalysisOrchestrator {
     @Transactional
     public AnalysisResponse analyze(AnalysisRequest request) {
         AnalysisTaskEntity task = createTask(request);
+        auditLogService.record("system", 0L, "ANALYSIS_SUBMIT", "ANALYSIS", task.getId(),
+                "SUCCESS", null, java.util.Map.of("taskId", task.getId()));
         List<AnalysisResponse.StepInfo> steps = new ArrayList<>();
         String error = null;
 
@@ -168,6 +173,14 @@ public class AnalysisOrchestrator {
                 interpretation != null ? toJson(interpretation) : null,
                 chartSpec != null ? toJson(chartSpec) : null));
         taskRepo.save(task);
+
+        if ("FAILED".equals(task.getStatus())) {
+            auditLogService.record("system", 0L, "ANALYSIS_FAILED", "ANALYSIS", task.getId(),
+                    "FAILED", null, java.util.Map.of("taskId", task.getId()));
+        } else {
+            auditLogService.record("system", 0L, "ANALYSIS_COMPLETED", "ANALYSIS", task.getId(),
+                    "SUCCESS", null, java.util.Map.of("taskId", task.getId()));
+        }
 
         return buildResponse(task, intent, sqlResult, validation, queryResult,
                 interpretation, chartSpec, error, steps);

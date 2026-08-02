@@ -84,6 +84,12 @@ const router = createRouter({
           component: () => import('@/views/admin/PromptTemplatePage.vue'),
           meta: { title: 'Prompt 模板管理' },
         },
+        {
+          path: 'logs',
+          name: 'auditLogs',
+          component: () => import('@/views/admin/AuditLogPage.vue'),
+          meta: { title: '操作日志' },
+        },
       ],
     },
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
