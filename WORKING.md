@@ -614,6 +614,29 @@ M8  ████████████ ✅ 对话界面         4 tests
 
 ---
 
+## 十七·十、P5 系统首页 Dashboard 记录（2026-08-02）
+
+### 4 项口径调整落实（commit `0e5964b`）
+| 点 | 实现 |
+|----|------|
+| 1 失败分类 | analysis_steps.failure_category（SQL_VALIDATION/QUERY_EXECUTION/MODEL_TIMEOUT/MODEL_RESPONSE/UNEXPECTED），FailureClassifier 稳定分类，不按原始文本分组 |
+| 2 数据集权限 | admin=本组织启用数；普通用户=被授权访问数据集数 |
+| 3 连续7天趋势 | Service 补齐缺失日期 count=0；按 Asia/Shanghai 业务时区 |
+| 4 成功率终态 | COMPLETED/(COMPLETED+FAILED+CANCELLED)；无终态返 null |
+
+### 接口
+`GET /api/dashboard/summary` → datasetCount/analysisCount/successRate/last7DaysTrend/recentTasks/commonFailures（全部 DB 聚合）
+
+### 前端
+- DashboardView：4 指标卡 + 近7天 ECharts 柱状图 + 常见失败表 + 最近任务表 + 空状态
+- 侧栏"系统首页"置首位 enabled（/home）；AI 数据分析路由改 /analysis（/ 重定向）
+
+### 测试
+- 后端 191（新增 FailureClassifier 5 + DashboardController 2）
+- 前端 43（新增 dashboardStore 2）
+
+---
+
 ## 十七·九、P4 操作审计日志 记录（2026-08-02）
 
 ### 4 条补充约束落实
@@ -755,6 +778,8 @@ M8  ████████████ ✅ 对话界面         4 tests
 ---
 
 ## 十八、最后更新
+
+**2026-08-02**：完成 P5「系统首页 Dashboard」——只读后端聚合 + 失败分类 + 连续7天趋势 + 权限隔离。后端 191、前端 43 测试全绿。
 
 **2026-08-02**：完成 P4「操作审计日志」——AOP @Audit + 只追加 + 白名单脱敏 + 分析分开记录 + admin-only 查询。后端 184、前端 41 测试全绿。
 
