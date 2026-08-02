@@ -614,6 +614,30 @@ M8  ████████████ ✅ 对话界面         4 tests
 
 ---
 
+## 十七·九、P4 操作审计日志 记录（2026-08-02）
+
+### 4 条补充约束落实
+| 点 | 实现 |
+|----|------|
+| 1 防重复 | @Audit 仅标注 Service 方法，Controller 不标；每动作单边界一次 |
+| 2 失败独立事务 | AuditLogService.record 用 REQUIRES_NEW；业务回滚仍保留 FAILED 日志；审计失败不掩盖业务异常 |
+| 3 不序列化全参数 | AuditDetailSanitizer 白名单 detail：只记 method + args 类型名；剥离 prompt/SQL/结果/密钥引用 |
+| 4 分析分开记录 | 提交记 ANALYSIS_SUBMIT；全部完成记 COMPLETED/FAILED；IP 仅 getRemoteAddr() 不信任 X-Forwarded-For |
+
+### 关键文件
+- `@Audit` 注解 + `AuditAspect`（AOP 环绕，成功/失败都记）
+- `AuditLogService`（REQUIRES_NEW）、`AuditDetailSanitizer`、`AuditLogController`（admin-only 分页筛选）
+- `AuthAuditListener`（登录/退出事件）
+- `AuditLogEntity` + `AuditLogRepository` + V006（operator_name + result 列）
+- Dataset/Field/Metric/Model/Prompt Service 方法加 @Audit
+
+### 测试
+- 后端 184（新增 AuditLogTest 4 + AuditLogController 4）
+- 前端 41（新增 auditLogStore 2）
+- 注：commit 已本地，push 待网络恢复
+
+---
+
 ## 十七·八、P3 AI模型配置+Prompt模板管理 记录（2026-08-02）
 
 ### 6 项安全约束落实（commit `715552c`）
@@ -731,6 +755,8 @@ M8  ████████████ ✅ 对话界面         4 tests
 ---
 
 ## 十八、最后更新
+
+**2026-08-02**：完成 P4「操作审计日志」——AOP @Audit + 只追加 + 白名单脱敏 + 分析分开记录 + admin-only 查询。后端 184、前端 41 测试全绿。
 
 **2026-08-02**：完成 P3「AI 模型配置 + Prompt 模板管理」——6 项安全约束（全局默认唯一/Base URL 白名单/key 白名单/不可变版本/contentHash/必需类型保护/普通用户不读正文）。后端 176、前端 39 测试全绿。commit `715552c`。
 
