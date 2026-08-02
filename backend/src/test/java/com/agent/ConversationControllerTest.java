@@ -4,6 +4,7 @@ import com.agent.entity.AnalysisTaskEntity;
 import com.agent.entity.ConversationEntity;
 import com.agent.repository.AnalysisTaskRepository;
 import com.agent.repository.ConversationRepository;
+import com.agent.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,15 +36,19 @@ class ConversationControllerTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private ConversationRepository convRepo;
     @Autowired private AnalysisTaskRepository taskRepo;
+    @Autowired private UserRepository userRepo;
+
+    private Long adminUserId;
 
     @BeforeEach
     void setUp() {
-        // no seed needed — conversations created per test
+        // Resolve admin's real DB id (identity migration: userId is now users.id).
+        adminUserId = userRepo.findByUsername("admin").orElseThrow().getId();
     }
 
     private Long createConv(String title, Long datasetId) {
         ConversationEntity c = new ConversationEntity();
-        c.setUserId(0L);
+        c.setUserId(adminUserId);
         c.setTitle(title);
         c.setDatasetId(datasetId);
         c.setStatus("ACTIVE");
@@ -118,7 +123,7 @@ class ConversationControllerTest {
             Long id = createConv("有任务会话", 1L);
             // Add a task to the conversation
             AnalysisTaskEntity t = new AnalysisTaskEntity();
-            t.setUserId(0L);
+            t.setUserId(adminUserId);
             t.setQuestion("q");
             t.setDatasetId(1L);
             t.setConversationId(id);

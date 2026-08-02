@@ -1,10 +1,16 @@
 package com.agent.config;
 
 import com.agent.entity.AiModelEntity;
+import com.agent.entity.DatasetAccessEntity;
 import com.agent.entity.PromptTemplateEntity;
+import com.agent.entity.UserEntity;
 import com.agent.repository.AiModelRepository;
+import com.agent.repository.DatasetAccessRepository;
+import com.agent.repository.DatasetRepository;
 import com.agent.repository.PromptTemplateRepository;
+import com.agent.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -22,16 +28,57 @@ public class ConfigSeeder {
 
     private final AiModelRepository modelRepo;
     private final PromptTemplateRepository promptRepo;
+    private final UserRepository userRepo;
+    private final DatasetRepository datasetRepo;
+    private final DatasetAccessRepository accessRepo;
+    private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
-    public ConfigSeeder(AiModelRepository modelRepo, PromptTemplateRepository promptRepo) {
+    public ConfigSeeder(AiModelRepository modelRepo, PromptTemplateRepository promptRepo,
+                        UserRepository userRepo, DatasetRepository datasetRepo,
+                        DatasetAccessRepository accessRepo) {
         this.modelRepo = modelRepo;
         this.promptRepo = promptRepo;
+        this.userRepo = userRepo;
+        this.datasetRepo = datasetRepo;
+        this.accessRepo = accessRepo;
     }
 
     @PostConstruct
     public void seed() {
         seedDefaultModel();
         seedDefaultPrompts();
+        seedUsersAndAccess();
+    }
+
+    /** Seed admin (ADMIN) + analyst (ANALYST) and grant analyst a demo dataset. */
+    private void seedUsersAndAccess() {
+        if (userRepo.count() > 0) return;
+
+        UserEntity admin = new UserEntity();
+        admin.setUsername("admin");
+        admin.setPasswordHash(encoder.encode("test123"));
+        admin.setDisplayName("系统管理员");
+        admin.setRole(UserEntity.ROLE_ADMIN);
+        admin.setOrgId(0L);
+        admin.setIsEnabled(true);
+        userRepo.save(admin);
+
+        UserEntity analyst = new UserEntity();
+        analyst.setUsername("analyst");
+        analyst.setPasswordHash(encoder.encode("test123"));
+        analyst.setDisplayName("分析员");
+        analyst.setRole(UserEntity.ROLE_ANALYST);
+        analyst.setOrgId(0L);
+        analyst.setIsEnabled(true);
+        userRepo.save(analyst);
+
+        // Explicitly grant the analyst the first demo dataset (constraint 5).
+        datasetRepo.findAll().stream().findFirst().ifPresent(ds -> {
+            DatasetAccessEntity a = new DatasetAccessEntity();
+            a.setUserId(analyst.getId());
+            a.setDatasetId(ds.getId());
+            accessRepo.save(a);
+        });
     }
 
     private void seedDefaultModel() {

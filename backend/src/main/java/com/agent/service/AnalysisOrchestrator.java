@@ -45,6 +45,7 @@ public class AnalysisOrchestrator {
     private final QueryExecutionService executionService;
     private final ResultInterpretationService interpretationService;
     private final ChartRecommendationService chartService;
+    private final UserAccessContext access;
     private final ObjectMapper objectMapper;
 
     public AnalysisOrchestrator(
@@ -61,6 +62,7 @@ public class AnalysisOrchestrator {
             QueryExecutionService executionService,
             ResultInterpretationService interpretationService,
             ChartRecommendationService chartService,
+            UserAccessContext access,
             ObjectMapper objectMapper) {
         this.taskRepo = taskRepo;
         this.stepRepo = stepRepo;
@@ -75,6 +77,7 @@ public class AnalysisOrchestrator {
         this.executionService = executionService;
         this.interpretationService = interpretationService;
         this.chartService = chartService;
+        this.access = access;
         this.objectMapper = objectMapper;
     }
 
@@ -83,6 +86,9 @@ public class AnalysisOrchestrator {
      */
     @Transactional
     public AnalysisResponse analyze(AnalysisRequest request) {
+        if (request.datasetId() != null && !access.canAccessDataset(request.datasetId())) {
+            throw new org.springframework.security.access.AccessDeniedException("无权访问该数据集");
+        }
         AnalysisTaskEntity task = createTask(request);
         auditLogService.record("system", 0L, "ANALYSIS_SUBMIT", "ANALYSIS", task.getId(),
                 "SUCCESS", null, java.util.Map.of("taskId", task.getId()));

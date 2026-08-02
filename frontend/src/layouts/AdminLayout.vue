@@ -66,9 +66,9 @@ const menus = computed<MenuItem[]>(() => [
   { key: '/models', path: '/models', title: 'AI 模型配置', icon: Cpu },
   { key: '/prompts', path: '/prompts', title: 'Prompt 模板管理', icon: DocumentCopy },
   { key: '/logs', path: '/logs', title: '操作日志', icon: List },
+  { key: '/users', path: '/users', title: '用户管理', icon: User },
 
   // ---- Dev-in-progress (visible, disabled, hover tip) ----
-  { key: '/dev/user', title: '用户管理', icon: User, disabled: true, tip: DEV_TIP },
   { key: '/dev/tables', title: '数据表管理', icon: Collection, disabled: true, tip: DEV_TIP },
   { key: '/dev/plan', title: 'Agent 分析计划', icon: SetUp, disabled: true, tip: DEV_TIP },
   { key: '/dev/notify', title: '消息通知', icon: Bell, disabled: true, tip: DEV_TIP },

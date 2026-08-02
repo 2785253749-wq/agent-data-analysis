@@ -100,6 +100,12 @@ const router = createRouter({
           component: () => import('@/views/admin/AuditLogPage.vue'),
           meta: { title: '操作日志' },
         },
+        {
+          path: 'users',
+          name: 'users',
+          component: () => import('@/views/admin/UserManagerPage.vue'),
+          meta: { title: '用户管理' },
+        },
       ],
     },
     { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },

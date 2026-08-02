@@ -2,19 +2,35 @@ import axios from 'axios'
 
 /**
  * Axios instance configured for backend API.
- * Vite dev server proxies /api → localhost:8080.
- * Uses HTTP Basic auth (dev credentials, same as backend application.yml).
+ * Constraint 3: credentials live ONLY in module memory (never localStorage/sessionStorage).
+ * Provide credentials via setCredentials() (e.g. from a login form); clearCredentials()
+ * on logout. After reload, the user must re-authenticate (no persisted Basic credentials).
  */
-const AUTH_USER = 'admin'
-const AUTH_PASSWORD = 'test123'
-const authToken = btoa(`${AUTH_USER}:${AUTH_PASSWORD}`)
+let authToken: string | null = null
+
+export function setCredentials(username: string, password: string) {
+  authToken = btoa(`${username}:${password}`)
+  updateAuthHeader()
+}
+
+export function clearCredentials() {
+  authToken = null
+  updateAuthHeader()
+}
+
+function updateAuthHeader() {
+  if (authToken) {
+    apiClient.defaults.headers.common.Authorization = `Basic ${authToken}`
+  } else {
+    delete apiClient.defaults.headers.common.Authorization
+  }
+}
 
 const apiClient = axios.create({
   baseURL: '/api',
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
-    Authorization: `Basic ${authToken}`,
   },
 })
 
