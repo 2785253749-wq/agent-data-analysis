@@ -614,6 +614,32 @@ M8  ████████████ ✅ 对话界面         4 tests
 
 ---
 
+## 十七·十一、P6 用户管理与角色权限 记录（2026-08-02）
+
+### 5 条安全/迁移约束落实
+| 点 | 实现 |
+|----|------|
+| 1 org_id | users 带 org_id；ADMIN 仅管本组织用户/数据集；跨组织授权被拒 |
+| 2 身份迁移 | 认证从内存用户切到 DB users.id；测试适配 admin 用真实 DB id |
+| 3 凭证内存 | client.ts setCredentials/clearCredentials 仅内存，不写 localStorage |
+| 4 防自锁 | 最后 enabled ADMIN 不可禁/降/删；当前登录 admin 不可动自己；resetPassword 不写审计 detail |
+| 5 实时授权 | canAccessDataset 实时查 dataset_access（不加载全量）；空授权 ANALYST 不可见；演示 analyst 显式授权 |
+
+### 关键文件
+- V008：users + dataset_access；ConfigSeeder 种子 admin/analyst + 演示授权
+- DbUserDetailsService（BCrypt）+ SecurityConfig `/api/admin/** hasRole('ADMIN')`
+- UserService/Controller + DatasetAccessService/Controller
+- UserAccessContext 改造（DB 角色+org+实时 canAccessDataset）
+- AnalysisOrchestrator/Conversation 数据集门控
+- 前端 UserManagerPage + client.ts 内存凭证
+
+### 测试
+- 后端 200（新增 UserController 5 + DatasetAccess 4）
+- 前端 46（新增 usersStore 3）
+- 注：commit 本地，push 待网络恢复
+
+---
+
 ## 十七·十、P5 系统首页 Dashboard 记录（2026-08-02）
 
 ### 4 项口径调整落实（commit `0e5964b`）
@@ -778,6 +804,8 @@ M8  ████████████ ✅ 对话界面         4 tests
 ---
 
 ## 十八、最后更新
+
+**2026-08-02**：完成 P6「用户管理与角色权限」——DB 认证 + ADMIN/ANALYST 角色 + 数据集授权 + 防自锁 + 内存凭证。后端 200、前端 46 测试全绿。
 
 **2026-08-02**：完成 P5「系统首页 Dashboard」——只读后端聚合 + 失败分类 + 连续7天趋势 + 权限隔离。后端 191、前端 43 测试全绿。
 
